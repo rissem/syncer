@@ -2,9 +2,11 @@
   "name": "git-n-sync",
   "version": "0.0.1",
   "description": "Keeps a local git repo tightly synced w/ a remote",
-  "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "./node_modules/mocha/bin/mocha --compilers coffee:coffee-script/register"
+  },
+  "bin": {
+    "syncer": "./bin/syncer"
   },
   "repository": {
     "type": "git",
@@ -20,5 +22,14 @@
   "bugs": {
     "url": "https://github.com/rissem/git-n-sync/issues"
   },
-  "homepage": "https://github.com/rissem/git-n-sync"
+  "homepage": "https://github.com/rissem/git-n-sync",
+  "devDependencies": {
+    "chai": "^2.3.0",
+    "mocha": "^2.2.5",
+    "rimraf": "^2.3.4"
+  },
+  "dependencies": {
+    "coffee-script": "^1.9.2",
+    "lie": "^2.8.1"
+  }
 }
