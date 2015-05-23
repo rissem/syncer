@@ -1,11 +1,24 @@
-expect = require('chai').expect
+chai = require('chai');
+chai.should();
+chaiAsPromised = require("chai-as-promised");
+chai.use(chaiAsPromised);
+
 rimraf = require "rimraf"
 fs = require 'fs'
 exec = require('child_process').exec
-Promise = require('lie')
-nodegit = require("nodegit")
+Promise = require 'lie'
+nodegit = require "nodegit"
+sync = require '../lib/sync'
 
 tmpWorkspace = ".test-tmp"
+
+Promise.prototype.next = (func)->
+  new Promise (resolve, reject)=>
+    this.then (result)->
+      func(result)
+    , (reason)->
+      reject(reason)
+      return this
 
 runCmd = (cmd, dir=tmpWorkspace)->
   console.log "RUN CMD #{cmd}" if process.env.DEBUG
@@ -91,15 +104,13 @@ describe 'Syncing', ->
       console.log(e.stack)
     )
     
-  describe 'Non-bare to bare', ->
-    it 'should sync all files', (done)->
-      #really these commits should both be fetched in parallel..
-      getCommits("client")
-      .then (commits)->
-        expect(commits.length).to.equal(2)
-        getCommits("server")
-        .then (commits)->
-          expect(commits.length).to.equal(0)
-          done()
+  describe 'Non-bare (empty staging area) to bare', ->
+    it 'should sync all files', ->
+      clientCommits = getCommits("client")
+      serverCommits = getCommits("server")      
 
-      
+      Promise.all([
+        clientCommits.should.eventually.have.property("length").equal(2),
+        serverCommits.should.eventually.have.property("length").equal(0)
+      ])#.next (result)->
+        

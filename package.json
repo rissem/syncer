@@ -25,6 +25,7 @@
   "homepage": "https://github.com/rissem/git-n-sync",
   "devDependencies": {
     "chai": "^2.3.0",
+    "chai-as-promised": "^5.0.0",
     "mocha": "^2.2.5",
     "nodegit": "^0.4.0",
     "rimraf": "^2.3.4"
