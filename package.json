@@ -26,6 +26,7 @@
   "devDependencies": {
     "chai": "^2.3.0",
     "mocha": "^2.2.5",
+    "nodegit": "^0.4.0",
     "rimraf": "^2.3.4"
   },
   "dependencies": {
