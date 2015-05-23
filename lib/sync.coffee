@@ -1,5 +1,7 @@
+Promise = require 'lie'
+
 sync = (srcDir, remote)->
-  console.log ("HOLLER")
-  console.log "syncing #{srcDir} to #{remote}"
+  new Promise (resolve, reject)->
+    resolve("success")
 
 module.exports = sync

@@ -15,10 +15,17 @@ tmpWorkspace = ".test-tmp"
 Promise.prototype.next = (func)->
   new Promise (resolve, reject)=>
     this.then (result)->
-      func(result)
+      func(result).then (result)->
+        resolve(result)
+      , (reason)->
+        reject(reason)
+      .catch (e)->
+        reject(e)
     , (reason)->
       reject(reason)
       return this
+    .catch (e)->
+      reject(e)
 
 runCmd = (cmd, dir=tmpWorkspace)->
   console.log "RUN CMD #{cmd}" if process.env.DEBUG
@@ -112,5 +119,6 @@ describe 'Syncing', ->
       Promise.all([
         clientCommits.should.eventually.have.property("length").equal(2),
         serverCommits.should.eventually.have.property("length").equal(0)
-      ])#.next (result)->
-        
+      ]).next (result)->
+        remote = "#{process.env.USER}@localhost:#{process.cwd()}/#{tmpWorkspace}/server"
+        sync("#{tmpWorkspace}/client", remote) #another promise
