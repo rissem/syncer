@@ -113,12 +113,12 @@ describe 'Syncing', ->
     
   describe 'Non-bare (empty staging area) to bare', ->
     it 'should sync all files', ->
-      clientCommits = getCommits("client")
-      serverCommits = getCommits("server")      
-
       Promise.all([
-        clientCommits.should.eventually.have.property("length").equal(2),
-        serverCommits.should.eventually.have.property("length").equal(0)
+        getCommits('client').should.eventually.have.property("length").equal(2),
+        getCommits('server').should.eventually.have.property("length").equal(0)
       ]).next (result)->
         remote = "#{process.env.USER}@localhost:#{process.cwd()}/#{tmpWorkspace}/server"
-        sync("#{tmpWorkspace}/client", remote) #another promise
+        sync("#{tmpWorkspace}/client", remote).next ->
+          Promise.all([
+            getCommits('server').should.eventually.have.property("length").equal(2)
+          ])
