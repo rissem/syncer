@@ -5,10 +5,10 @@ chai.use(chaiAsPromised);
 
 rimraf = require "rimraf"
 fs = require 'fs'
-exec = require('child_process').exec
 Promise = require 'lie'
 nodegit = require "nodegit"
 sync = require '../lib/sync'
+run = require '../lib/run'
 
 tmpWorkspace = ".test-tmp"
 
@@ -27,17 +27,6 @@ Promise.prototype.next = (func)->
     .catch (e)->
       reject(e)
 
-runCmd = (cmd, dir=tmpWorkspace)->
-  console.log "RUN CMD #{cmd}" if process.env.DEBUG
-  new Promise (resolve, reject)->
-    exec cmd, {cwd: dir}, (err, stdout, stderr)->
-      console.error stderr if stderr
-      console.log stdout if stdout and process.env.DEBUG
-      if err
-        reject(Error(err))
-      else
-        resolve {stdout, stderr}
-
 addFile = (repo, path, contents)->
   new Promise (resolve, reject)->
     filepath = "./#{tmpWorkspace}/#{repo}/#{path}"
@@ -47,26 +36,27 @@ addFile = (repo, path, contents)->
       else
         resolve filepath
 
-createRepo = (repo)->
-  runCmd "git init #{repo}"
+readFile = (filename)->
+  new Promise (resolve, reject)->
+    fs.readFile filename, (err,data)->
+      if err
+        reject err
+      else
+        resolve data
+
+createRepo = (repo, config=null)->
+  # for server repo creation we should also handle
+  # post-push hook, config allowing pushes to active branch shoul exist on this repo
+  # at some point creating the server repo should create docker
+    # container + http proxy in front of it
+  # also this should exist as part of the app not part of the tests
+  run.cmd "git init #{repo}", tmpWorkspace
 
 commitAll = (repo, msg)->
-  runCmd "git add .", "#{tmpWorkspace}/#{repo}"
+  run.cmd "git add .", "#{tmpWorkspace}/#{repo}"
   .then ->
-    runCmd "git commit -m \"#{msg}\"", "#{tmpWorkspace}/#{repo}"
+    run.cmd "git commit -m \"#{msg}\"", "#{tmpWorkspace}/#{repo}"
   
-addREADME = (repo, contents="README")->
-  addFile(repo, "README.md", contents)
-
-fillRepo = (repo)->
-  addREADME repo
-  .then ->
-    commitAll(repo, "commit README")
-  .then ->
-    addFile(repo, 'index.js', "console.log('Helo World');")
-  .then ->
-    commitAll(repo, "add index.js file")
-
 getCommits = (repo)->
   commits = []
   nodegit.Repository.open("#{tmpWorkspace}/#{repo}")
@@ -95,15 +85,29 @@ getCommits = (repo)->
       history.on "end", ->
         resolve(commits)
 
-    
 describe 'Syncing', ->
+  readmeContents = "README"
+
+  addREADME = (repo, contents=readmeContents)->
+    addFile(repo, "README.md", contents)
+
+  fillRepo = (repo)->
+    addREADME repo
+    .then ->
+      commitAll(repo, "commit README")
+    .then ->
+      addFile(repo, 'index.js', "console.log('Helo World');")
+    .then ->
+      commitAll(repo, "add index.js")
+
   beforeEach (done)->
     #remove tmp dir if it exists
     rimraf.sync("./#{tmpWorkspace}")
     fs.mkdirSync("./#{tmpWorkspace}")
     p1 = createRepo("client").then((result)->
       fillRepo("client"))
-    p2 = createRepo("server")
+    p2 = createRepo("server").then (result)->
+      run.cmd "git config receive.denyCurrentBranch ignore", "./#{tmpWorkspace}/server"
     Promise.all([p1,p2]).then((answer)->
       done()
     ).catch((e)->
@@ -121,4 +125,5 @@ describe 'Syncing', ->
         sync("#{tmpWorkspace}/client", remote).next ->
           Promise.all([
             getCommits('server').should.eventually.have.property("length").equal(2)
+            readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
           ])
