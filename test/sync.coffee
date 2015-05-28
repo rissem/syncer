@@ -56,10 +56,6 @@ configureServer = (repo)->
     readFile("lib/postReceive.js").then (contents)->
       addFile(repo, ".git/hooks/post-receive", contents).then (filepath)->
         run.cmd "chmod 755 #{filepath}" #TODO should probably do this w/o shelling out
-    readFile("lib/postUpdate.js").then (contents)->
-      addFile(repo, ".git/hooks/post-update", contents).then (filepath)->
-        run.cmd "chmod 755 #{filepath}" #TODO should probably do this w/o shelling out
-
   ]
   # at some point creating the server repo should create docker
     # container + http proxy in front of it
@@ -139,4 +135,6 @@ describe 'Syncing', ->
           Promise.all([
             getCommits('server').should.eventually.have.property("length").equal(2)
             readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
+            getCommits('client').should.eventually.have.property("length").equal(2)
           ])
+

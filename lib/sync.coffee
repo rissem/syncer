@@ -4,7 +4,6 @@ gitIndexFile = "index-git-n-sync"
 path = require 'path'
 fs = require 'fs'
 
-
 #TODO move this out into common libary
 readFile = (filename)->
   new Promise (resolve, reject)->
@@ -18,12 +17,11 @@ getHead = (srcDir)->
   readFile(path.join(srcDir, ".git", "HEAD")).then (contents)->
     # example contents: ref: /refs/heads/master, ref would be /refs/heads/master
     ref = /ref: (.*)\n?/.exec(contents)[1]
-    readFile(path.join(srcDir, ".git", ref)).then (sha)->
+    readFile(path.join(srcDir, ".git", ref)).then (file)->
+      sha = file.split("\n")[0]
       #is there a better way to combine the data from these two promises?
       return new Promise (resolve, reject)->
         resolve {ref, sha}
-
-
 
 #main entry point
 sync = (srcDir, remote)->
@@ -34,19 +32,13 @@ sync = (srcDir, remote)->
   getHead(srcDir).then ({ref, sha})->
     message = "#{ref} #{sha}"
     run.cmd("git add -A .", srcDir, {env: {GIT_INDEX_FILE: gitIndexFile}}).then ->
-#use git write-tree and git commit-tree instead to HEAD doesn't move and user doesn't the sync commits
-    run.cmd("git commit --allow-empty -m \"#{message}\"", srcDir, {env: {GIT_INDEX_FILE: gitIndexFile}}).then ->
-      push(srcDir, remote)
-
-  # push commit to server (special git-n-sync branch)
-  # rest of the magic is in post-receive hook
-  #   set HEAD to working branch
-  #   set working branch to last real commit
-  #   restore from last virtual commit
-
-
-
-push = (srcDir, remote)->
-  run.cmd "git push #{remote} master", srcDir
+      run.cmd("git write-tree", srcDir, {env: {GIT_INDEX_FILE: gitIndexFile}}).then ({stdout, stderr})->
+        treeHash = stdout.split("\n")[0]
+        command = "git commit-tree #{treeHash} -p #{sha} -m \"#{message}\""
+        run.cmd(command, srcDir).then ({stdout, stderr})->
+          commitHash = stdout.split("\n")[0]
+          command = "git push #{remote} #{commitHash}:refs/heads/__git-n-sync__"
+          console.log "running command #{command}"
+          run.cmd command, srcDir
 
 module.exports = sync
