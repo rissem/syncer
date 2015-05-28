@@ -1,7 +1,7 @@
 Promise = require 'lie'
 exec = require('child_process').exec
 
-module.exports = cmd: (cmd, dir)->
+module.exports = cmd: (cmd, dir, options={})->
   console.log "RUN CMD #{cmd}" if process.env.DEBUG
   new Promise (resolve, reject)->
     exec cmd, {cwd: dir}, (err, stdout, stderr)->

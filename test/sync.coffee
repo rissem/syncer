@@ -12,6 +12,8 @@ run = require '../lib/run'
 
 tmpWorkspace = ".test-tmp"
 
+#TODO path independent filenames
+
 Promise.prototype.next = (func)->
   new Promise (resolve, reject)=>
     this.then (result)->
@@ -38,19 +40,30 @@ addFile = (repo, path, contents)->
 
 readFile = (filename)->
   new Promise (resolve, reject)->
-    fs.readFile filename, (err,data)->
+    fs.readFile filename, 'utf-8', (err,data)->
       if err
         reject err
       else
         resolve data
 
-createRepo = (repo, config=null)->
-  # for server repo creation we should also handle
-  # post-push hook, config allowing pushes to active branch shoul exist on this repo
+createRepo = (repo)->
+  run.cmd "git init #{repo}", tmpWorkspace
+
+configureServer = (repo)->
+  Promise.all [
+    #allow pushing to the active branch
+    run.cmd "git config receive.denyCurrentBranch ignore", "./#{tmpWorkspace}/#{repo}"
+    readFile("lib/postReceive.js").then (contents)->
+      addFile(repo, ".git/hooks/post-receive", contents).then (filepath)->
+        run.cmd "chmod 755 #{filepath}" #TODO should probably do this w/o shelling out
+    readFile("lib/postUpdate.js").then (contents)->
+      addFile(repo, ".git/hooks/post-update", contents).then (filepath)->
+        run.cmd "chmod 755 #{filepath}" #TODO should probably do this w/o shelling out
+
+  ]
   # at some point creating the server repo should create docker
     # container + http proxy in front of it
   # also this should exist as part of the app not part of the tests
-  run.cmd "git init #{repo}", tmpWorkspace
 
 commitAll = (repo, msg)->
   run.cmd "git add .", "#{tmpWorkspace}/#{repo}"
@@ -107,7 +120,7 @@ describe 'Syncing', ->
     p1 = createRepo("client").then((result)->
       fillRepo("client"))
     p2 = createRepo("server").then (result)->
-      run.cmd "git config receive.denyCurrentBranch ignore", "./#{tmpWorkspace}/server"
+      configureServer("server")
     Promise.all([p1,p2]).then((answer)->
       done()
     ).catch((e)->
