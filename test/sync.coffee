@@ -8,7 +8,7 @@ fs = require 'fs'
 Promise = require 'lie'
 nodegit = require "nodegit"
 sync = require '../lib/sync'
-run = require '../lib/run'
+utils = require '../lib/utils'
 
 tmpWorkspace = ".test-tmp"
 
@@ -29,42 +29,28 @@ Promise.prototype.next = (func)->
     .catch (e)->
       reject(e)
 
-addFile = (repo, path, contents)->
-  new Promise (resolve, reject)->
-    filepath = "./#{tmpWorkspace}/#{repo}/#{path}"
-    fs.writeFile filepath, contents, (err)->
-      if err
-        reject Error(err) # better way to add this information to the stack trace?
-      else
-        resolve filepath
-
-readFile = (filename)->
-  new Promise (resolve, reject)->
-    fs.readFile filename, 'utf-8', (err,data)->
-      if err
-        reject err
-      else
-        resolve data
-
 createRepo = (repo)->
-  run.cmd "git init #{repo}", tmpWorkspace
+  utils.cmd tmpWorkspace, "git init #{repo}"
+
+writeRepo = (repo, filepath, contents)->
+  utils.writeFile "./#{tmpWorkspace}/#{repo}/#{filepath}", contents
 
 configureServer = (repo)->
   Promise.all [
     #allow pushing to the active branch
-    run.cmd "git config receive.denyCurrentBranch ignore", "./#{tmpWorkspace}/#{repo}"
-    readFile("lib/postReceive.js").then (contents)->
-      addFile(repo, ".git/hooks/post-receive", contents).then (filepath)->
-        run.cmd "chmod 755 #{filepath}" #TODO should probably do this w/o shelling out
+    utils.cmd "./#{tmpWorkspace}/#{repo}", "git config receive.denyCurrentBranch ignore"
+    utils.readFile("lib/postReceive.js").then (contents)->
+      writeRepo(repo, ".git/hooks/post-receive", contents).then (filepath)->
+        utils.cmd process.cwd(), "chmod 755 #{filepath}" #TODO should probably do this w/o shelling out
   ]
   # at some point creating the server repo should create docker
-    # container + http proxy in front of it
+  # container + http proxy in front of it
   # also this should exist as part of the app not part of the tests
 
 commitAll = (repo, msg)->
-  run.cmd "git add .", "#{tmpWorkspace}/#{repo}"
+  utils.cmd "#{tmpWorkspace}/#{repo}", "git add ."
   .then ->
-    run.cmd "git commit -m \"#{msg}\"", "#{tmpWorkspace}/#{repo}"
+    utils.cmd "#{tmpWorkspace}/#{repo}", "git commit -m \"#{msg}\""
   
 getCommits = (repo)->
   commits = []
@@ -98,14 +84,14 @@ describe 'Syncing', ->
   readmeContents = "README"
 
   addREADME = (repo, contents=readmeContents)->
-    addFile(repo, "README.md", contents)
+    writeRepo(repo, "README.md", contents)
 
   fillRepo = (repo)->
     addREADME repo
     .then ->
       commitAll(repo, "commit README")
     .then ->
-      addFile(repo, 'index.js', "console.log('Helo World');")
+      writeRepo(repo, 'index.js', "console.log('Helo World');")
     .then ->
       commitAll(repo, "add index.js")
 
@@ -134,7 +120,34 @@ describe 'Syncing', ->
         sync("#{tmpWorkspace}/client", remote).next ->
           Promise.all([
             getCommits('server').should.eventually.have.property("length").equal(2)
-            readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
+            utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
             getCommits('client').should.eventually.have.property("length").equal(2)
           ])
 
+    it.skip "should sync a save that is not committed", ->
+      remote = "#{process.env.USER}@localhost:#{process.cwd()}/#{tmpWorkspace}/server"
+      sync("#{tmpWorkspace}/client", remote).next ->
+        Promise.all([
+          getCommits('server').should.eventually.have.property("length").equal(2)
+          utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
+          getCommits('client').should.eventually.have.property("length").equal(2)
+        ]).next ->
+          newReadme = "New and improved README"
+          writeRepo("client", "README.md", newReadme).next ->
+            sync("#{tmpWorkspace}/client", remote).next ->
+              Promise.all([
+                getCommits('server').should.eventually.have.property("length").equal(2)
+                getCommits('client').should.eventually.have.property("length").equal(2)
+                utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(newReadme)
+              ])
+
+
+    it "remote repo should be clean after the user makes a commit"
+
+    it "should handle a branch switch"
+
+    it "should handle a commit amendment"
+
+    it "should respond properly to a git pull"
+
+    it "is ok if some files are staged"
