@@ -20,7 +20,7 @@ sync = (srcDir, remote)->
   # TODO probably want to add a readable message in case a user finds the commit somehow
 
   getHead(srcDir).then ({ref, sha})->
-    message = "#{ref} #{sha}"
+    message = "git-n-sync commit, you probably shouldn't be seeing this\n\n#{ref} #{sha}"
     utils.cmd(srcDir, "git add -A .", {env: {GIT_INDEX_FILE: gitIndexFile}}).then ->
       utils.cmd(srcDir, "git write-tree", {env: {GIT_INDEX_FILE: gitIndexFile}}).then ({stdout, stderr})->
         treeHash = stdout.split("\n")[0]
