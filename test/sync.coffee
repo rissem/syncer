@@ -124,7 +124,7 @@ describe 'Syncing', ->
             getCommits('client').should.eventually.have.property("length").equal(2)
           ])
 
-    it.skip "should sync a save that is not committed", ->
+    it "should sync a save that is not committed", ->
       remote = "#{process.env.USER}@localhost:#{process.cwd()}/#{tmpWorkspace}/server"
       sync("#{tmpWorkspace}/client", remote).next ->
         Promise.all([
@@ -151,3 +151,5 @@ describe 'Syncing', ->
     it "should respond properly to a git pull"
 
     it "is ok if some files are staged"
+
+    it "should handle an empty repo"
