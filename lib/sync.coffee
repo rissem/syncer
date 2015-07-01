@@ -3,6 +3,9 @@ utils = require './utils'
 gitIndexFile = "index-git-n-sync"
 path = require 'path'
 
+#TODO convert this to object with srcDir so we're not always passing it around
+
+#ref and branch pointed to by HEAD
 getHead = (srcDir)->
   utils.readFile(path.join(srcDir, ".git", "HEAD")).then (contents)->
     # example contents: ref: /refs/heads/master, ref would be /refs/heads/master
@@ -13,6 +16,7 @@ getHead = (srcDir)->
       return new Promise (resolve, reject)->
         resolve {ref, sha}
 
+#last syncer commit hash
 getSyncerHead = (srcDir)->
   utils.cmd(srcDir, "git show-ref --hash syncer/head").then ({stdout, stderr})->
     return new Promise (resolve, reject)->
@@ -23,28 +27,35 @@ getSyncerHead = (srcDir)->
     return new Promise (resolve, reject)->
       resolve null
 
+commitWorkingDir = (parentCommit, message, srcDir)->
+  # create a fake commit w/ last known user commit and working branch encoded in message
+  utils.cmd(srcDir, "git add -A .", {env: {GIT_INDEX_FILE: gitIndexFile}}).then ->
+    utils.cmd(srcDir, "git write-tree", {env: {GIT_INDEX_FILE: gitIndexFile}}).then ({stdout, stderr})->
+      treeHash = stdout.split("\n")[0]
+      command = "git commit-tree #{treeHash} -p #{parentCommit} -m \"#{message}\"\n"
+      utils.cmd(srcDir, command).then ({stdout, stderr})->
+        commitHash = stdout.split("\n")[0]
+        return new Promise (resolve, reject)->
+          resolve commitHash
 
-createCommitFromWorkingDirectory = (srcDir)->
+# Two kinds of syncs
+# a) new branch (first time syncing to branch or just switched branches)
+# push a commit w/o a parent, let server know which branch we are on
+# branch has already been synced at least once
+# push commit w/ parent = the last commit
+# in both cases update the ref to this commit and note the branch name as a symbolic ref
 
 #main entry point
 sync = (srcDir, remote)->
-  # console.log "syncing #{srcDir} to #{remote}"
   getHead(srcDir).then ({ref, sha})->
     getSyncerHead(srcDir).then (syncerHead)->
-      # create a fake commit w/ last known user commit and working branch encoded in message
       message = "git-n-sync commit, you probably shouldn't be seeing this\n\n#{ref} #{sha}"
-      utils.cmd(srcDir, "git add -A .", {env: {GIT_INDEX_FILE: gitIndexFile}}).then ->
-        utils.cmd(srcDir, "git write-tree", {env: {GIT_INDEX_FILE: gitIndexFile}}).then ({stdout, stderr})->
-          treeHash = stdout.split("\n")[0]
-          #parent commit is last syncer/head or HEAD of current branch is syncer/head is null
-          command = "git commit-tree #{treeHash} -p #{syncerHead or sha} -m \"#{message}\"\n"
+      commitWorkingDir(syncerHead or sha, message, srcDir).then (commitHash)->
+        utils.cmd(srcDir, "git update-ref refs/syncer/head #{commitHash}").then ->
+          command = "git push #{remote} #{commitHash}:refs/heads/__git-n-sync__"
+          console.log "running command #{command}"
           utils.cmd(srcDir, command).then ({stdout, stderr})->
-            commitHash = stdout.split("\n")[0]
-            utils.cmd(srcDir, "git update-ref refs/syncer/head #{commitHash}").then ->
-              command = "git push #{remote} #{commitHash}:refs/heads/__git-n-sync__"
-              console.log "running command #{command}"
-              utils.cmd srcDir, command
-          , ({stdout, stderr})->
-            console.log("STDOUT #{stdout}")
-            console.log("STDERR #{stderr}")
+            console.log stdout if stdout
+            console.error stderr if stderr
+
 module.exports = sync

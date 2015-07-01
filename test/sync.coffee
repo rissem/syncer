@@ -142,6 +142,8 @@ describe 'Syncing', ->
               ])
 
 
+    it "should handle an unsynced repo with a dirty working copy"
+
     it "remote repo should be clean after the user makes a commit"
 
     it "should handle a branch switch"
