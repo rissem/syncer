@@ -57,14 +57,12 @@ getCommits = (repo)->
   nodegit.Repository.open("#{tmpWorkspace}/#{repo}")
   .then (repo) ->
     if repo.isEmpty()
-      return new Promise (resolve, reject)->
-        resolve(null)
+      return Promise.resolve null
     else
       repo.getMasterCommit()
   .then (firstComitOnMaster) ->
     if firstComitOnMaster == null
-      return new Promise (resolve, reject)->
-        resolve(null)
+      return Promise.resolve null
     history = firstComitOnMaster.history()
 
     history.on "commit", (commit)->
@@ -95,7 +93,9 @@ describe 'Syncing', ->
     .then ->
       commitAll(repo, "add index.js")
 
-  beforeEach (done)->
+  beforeEach ->
+    @clientDir = "#{tmpWorkspace}/client"
+    @remote = "#{process.env.USER}@localhost:#{process.cwd()}/#{tmpWorkspace}/server"
     #remove tmp dir if it exists
     rimraf.sync("./#{tmpWorkspace}")
     fs.mkdirSync("./#{tmpWorkspace}")
@@ -103,21 +103,15 @@ describe 'Syncing', ->
       fillRepo("client"))
     p2 = createRepo("server").then (result)->
       configureServer("server")
-    Promise.all([p1,p2]).then((answer)->
-      done()
-    ).catch((e)->
-      console.log(e)
-      console.log(e.stack)
-    )
+    Promise.all([p1,p2])
     
   describe 'Non-bare (empty staging area) to bare', ->
     it 'should sync all files', ->
       Promise.all([
         getCommits('client').should.eventually.have.property("length").equal(2),
         getCommits('server').should.eventually.have.property("length").equal(0)
-      ]).next (result)->
-        remote = "#{process.env.USER}@localhost:#{process.cwd()}/#{tmpWorkspace}/server"
-        sync("#{tmpWorkspace}/client", remote).next ->
+      ]).next (result)=>
+        sync(@clientDir, @remote).next ->
           Promise.all([
             getCommits('server').should.eventually.have.property("length").equal(2)
             utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
@@ -125,16 +119,15 @@ describe 'Syncing', ->
           ])
 
     it "should sync a save that is not committed", ->
-      remote = "#{process.env.USER}@localhost:#{process.cwd()}/#{tmpWorkspace}/server"
-      sync("#{tmpWorkspace}/client", remote).next ->
+      sync("@clientDir, @remote).next =>
         Promise.all([
           getCommits('server').should.eventually.have.property("length").equal(2)
           utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
           getCommits('client').should.eventually.have.property("length").equal(2)
-        ]).next ->
+        ]).next =>
           newReadme = "New and improved README"
-          writeRepo("client", "README.md", newReadme).next ->
-            sync("#{tmpWorkspace}/client", remote).next ->
+          writeRepo("client", "README.md", newReadme).next =>
+            sync(@clientDir, @remote).next ->
               Promise.all([
                 getCommits('server').should.eventually.have.property("length").equal(2)
                 getCommits('client').should.eventually.have.property("length").equal(2)
