@@ -13,19 +13,17 @@ getHead = (srcDir)->
     utils.readFile(path.join(srcDir, ".git", ref)).then (file)->
       sha = file.split("\n")[0]
       #is there a better way to combine the data from these two promises?
-      return new Promise (resolve, reject)->
-        resolve {ref, sha}
+      Promise.resolve {ref, sha}
 
 #last syncer commit hash
 getSyncerHead = (srcDir)->
   utils.cmd(srcDir, "git show-ref --hash syncer/head").then ({stdout, stderr})->
-    return new Promise (resolve, reject)->
-      resolve(stdout.split("\n")[0])
+    return Promise.resolve (stdout.split("\n")[0])
   , ({stdout, stderr})-> #if ref doesn't exist just return a promise that resolves to null
     console.log stdout if stdout
     console.error stderr if stderr
-    return new Promise (resolve, reject)->
-      resolve null
+    Promise.resolve null
+
 
 commitWorkingDir = (parentCommit, message, srcDir)->
   # create a fake commit w/ last known user commit and working branch encoded in message
@@ -35,8 +33,7 @@ commitWorkingDir = (parentCommit, message, srcDir)->
       command = "git commit-tree #{treeHash} -p #{parentCommit} -m \"#{message}\"\n"
       utils.cmd(srcDir, command).then ({stdout, stderr})->
         commitHash = stdout.split("\n")[0]
-        return new Promise (resolve, reject)->
-          resolve commitHash
+        Promise.resolve commitHash
 
 # Two kinds of syncs
 # a) new branch (first time syncing to branch or just switched branches)
