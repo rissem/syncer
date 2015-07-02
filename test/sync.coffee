@@ -135,7 +135,16 @@ describe 'Syncing', ->
               ])
 
 
-    it "should handle an unsynced repo with a dirty working copy"
+    #correctly failing test
+    it "should handle an unsynced repo with a dirty working copy", ->
+      newReadme = "New and improved README"
+      writeRepo("client", "README.md", newReadme).next =>
+        sync(@clientDir, @remote).next ->
+          Promise.all([
+            getCommits('server').should.eventually.have.property("length").equal(2)
+            getCommits('client').should.eventually.have.property("length").equal(2)
+            utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(newReadme)
+          ])
 
     it "remote repo should be clean after the user makes a commit"
 
