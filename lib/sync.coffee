@@ -5,6 +5,8 @@ path = require 'path'
 
 #TODO convert this to object with srcDir so we're not always passing it around
 
+SYNCER_REF = "__git-n-sync__/head"
+
 #ref and branch pointed to by HEAD
 getHead = (srcDir)->
   utils.readFile(path.join(srcDir, ".git", "HEAD")).then (contents)->
@@ -12,12 +14,12 @@ getHead = (srcDir)->
     ref = /ref: (.*)\n?/.exec(contents)[1]
     utils.readFile(path.join(srcDir, ".git", ref)).then (file)->
       sha = file.split("\n")[0]
-      #is there a better way to combine the data from these two promises?
       Promise.resolve {ref, sha}
 
 #last syncer commit hash
+#also get commit message and extract the branch
 getSyncerHead = (srcDir)->
-  utils.cmd(srcDir, "git show-ref --hash syncer/head").then ({stdout, stderr})->
+  utils.cmd(srcDir, "git show-ref --hash #{SYNCER_REF}").then ({stdout, stderr})->
     return Promise.resolve (stdout.split("\n")[0])
   , ({stdout, stderr})-> #if ref doesn't exist just return a promise that resolves to null
     console.log stdout if stdout
@@ -47,9 +49,11 @@ sync = (srcDir, remote)->
   getHead(srcDir).then ({ref, sha})->
     getSyncerHead(srcDir).then (syncerHead)->
       message = "git-n-sync commit, you probably shouldn't be seeing this\n\n#{ref} #{sha}"
+      # add some logic for picking the commit
+      # should only use syncerHead if branch hasn't changed
       commitWorkingDir(syncerHead or sha, message, srcDir).then (commitHash)->
-        utils.cmd(srcDir, "git update-ref refs/syncer/head #{commitHash}").then ->
-          command = "git push #{remote} #{commitHash}:refs/heads/__git-n-sync__"
+        utils.cmd(srcDir, "git update-ref refs/#{SYNCER_REF} #{commitHash}").then ->
+          command = "git push #{remote} refs/#{SYNCER_REF}:refs/#{SYNCER_REF}"
           console.log "running command #{command}"
           utils.cmd(srcDir, command).then ({stdout, stderr})->
             console.log stdout if stdout

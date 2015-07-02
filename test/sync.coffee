@@ -119,7 +119,7 @@ describe 'Syncing', ->
           ])
 
     it "should sync a save that is not committed", ->
-      sync("@clientDir, @remote).next =>
+      sync(@clientDir, @remote).next =>
         Promise.all([
           getCommits('server').should.eventually.have.property("length").equal(2)
           utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
@@ -148,3 +148,5 @@ describe 'Syncing', ->
     it "is ok if some files are staged"
 
     it "should handle an empty repo"
+
+    it "is idempotent"
