@@ -52,6 +52,11 @@ commitAll = (repo, msg)->
   .then ->
     utils.cmd "#{tmpWorkspace}/#{repo}", "git commit -m \"#{msg}\""
   
+isClean = (repo)->
+  nodegit.Repository.open("#{tmpWorkspace}/#{repo}").then (repo) ->
+    repo.getStatus().then (statuses)->
+      Promise.resolve statuses.length == 0
+
 getCommits = (repo)->
   commits = []
   nodegit.Repository.open("#{tmpWorkspace}/#{repo}")
@@ -116,6 +121,7 @@ describe 'Syncing', ->
             getCommits('server').should.eventually.have.property("length").equal(2)
             utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
             getCommits('client').should.eventually.have.property("length").equal(2)
+            isClean("server").should.eventually.equal(true)
           ])
 
     it "should sync a save that is not committed", ->
@@ -132,6 +138,7 @@ describe 'Syncing', ->
                 getCommits('server').should.eventually.have.property("length").equal(2)
                 getCommits('client').should.eventually.have.property("length").equal(2)
                 utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(newReadme)
+                isClean('server').should.eventually.equal(false)
               ])
 
 
@@ -143,6 +150,7 @@ describe 'Syncing', ->
             getCommits('server').should.eventually.have.property("length").equal(2)
             getCommits('client').should.eventually.have.property("length").equal(2)
             utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(newReadme)
+            isClean('server').should.eventually.equal(false)
           ])
 
     it "remote repo should be clean after the user makes a commit"
