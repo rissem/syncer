@@ -35,6 +35,18 @@ createRepo = (repo)->
 writeRepo = (repo, filepath, contents)->
   utils.writeFile "./#{tmpWorkspace}/#{repo}/#{filepath}", contents
 
+gitCheckout = (repo, branch, create=false)->
+  command = "git checkout #{if create then '-b ' else ''}#{branch}"
+  console.log "COMMAND", command
+  utils.cmd "#{tmpWorkspace}/#{repo}", command
+
+gitHead = (repo)->
+  utils.readFile("#{tmpWorkspace}/#{repo}/.git/HEAD").then (contents)->
+    # match = /refs\/heads\/(.*$)/.match(contents)[1]
+    # console.log("MATCH", match)
+    head = /refs\/heads\/(.*$)/.exec(contents)[1]
+    Promise.resolve head
+
 configureServer = (repo)->
   Promise.all [
     #allow pushing to the active branch
@@ -64,7 +76,7 @@ getCommits = (repo)->
     if repo.isEmpty()
       return Promise.resolve null
     else
-      repo.getMasterCommit()
+      repo.getHeadCommit()
   .then (firstComitOnMaster) ->
     if firstComitOnMaster == null
       return Promise.resolve null
@@ -153,9 +165,19 @@ describe 'Syncing', ->
             isClean('server').should.eventually.equal(false)
           ])
 
-    it "remote repo should be clean after the user makes a commit"
+    it "should handle a non-master branch", ->
+      gitCheckout("client", "devel", true).then =>
+        sync(@clientDir, @remote).then (stuff)->
+          Promise.all([
+            getCommits('server').should.eventually.have.property("length").equal(2)
+            getCommits('client').should.eventually.have.property("length").equal(2)
+            gitHead("server").should.eventually.equal("devel")
+            isClean('server').should.eventually.equal(true)
+          ])
 
-    it "should handle a branch switch"
+    it "should handle a branch switch w/ a dirty repo", ->
+
+    it "should handle a series of non-committed edits"
 
     it "should handle a commit amendment"
 
