@@ -135,7 +135,6 @@ describe 'Syncing', ->
               ])
 
 
-    #correctly failing test
     it "should handle an unsynced repo with a dirty working copy", ->
       newReadme = "New and improved README"
       writeRepo("client", "README.md", newReadme).next =>
