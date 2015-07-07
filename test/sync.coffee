@@ -63,7 +63,7 @@ commitAll = (repo, msg)->
   utils.cmd "#{tmpWorkspace}/#{repo}", "git add ."
   .then ->
     utils.cmd "#{tmpWorkspace}/#{repo}", "git commit -m \"#{msg}\""
-  
+
 isClean = (repo)->
   nodegit.Repository.open("#{tmpWorkspace}/#{repo}").then (repo) ->
     repo.getStatus().then (statuses)->
@@ -121,7 +121,7 @@ describe 'Syncing', ->
     p2 = createRepo("server").then (result)->
       configureServer("server")
     Promise.all([p1,p2])
-    
+
   describe 'Non-bare (empty staging area) to bare', ->
     it 'should sync all files', ->
       Promise.all([
@@ -165,9 +165,28 @@ describe 'Syncing', ->
             isClean('server').should.eventually.equal(false)
           ])
 
+    it "should handle a series of non-committed edits/syncs", ->
+      writeRepo("client", "README.md", "v2")
+      .then =>
+        sync(@clientDir, @remote)
+      .then =>
+         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v2")
+      .then =>
+        writeRepo("client", "README.md", "v3")
+      .then =>
+        sync(@clientDir, @remote)
+      .then =>
+         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v3")
+      .then =>
+        writeRepo("client", "README.md", "v4")
+      .then =>
+        sync(@clientDir, @remote)
+      .then =>
+         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v4")
+
     it "should handle a non-master branch", ->
       gitCheckout("client", "devel", true).then =>
-        sync(@clientDir, @remote).then (stuff)->
+        sync(@clientDir, @remote).then ->
           Promise.all([
             getCommits('server').should.eventually.have.property("length").equal(2)
             getCommits('client').should.eventually.have.property("length").equal(2)
@@ -175,15 +194,76 @@ describe 'Syncing', ->
             isClean('server').should.eventually.equal(true)
           ])
 
-    it "should handle a branch switch w/ a dirty repo", ->
+    it.only "should handle a branch switch w/ a dirty repo", ->
+      newReadme = "New and improved README"
+      writeRepo("client", "README.md", newReadme).then =>
+        sync(@clientDir, @remote).then =>
+          gitCheckout("client", "devel", true).then =>
+            sync(@clientDir, @remote).then ->
+              Promise.all([
+                getCommits('server').should.eventually.have.property("length").equal(2)
+                getCommits('client').should.eventually.have.property("length").equal(2)
+                gitHead("server").should.eventually.equal("devel")
+                isClean('server').should.eventually.equal(false)
+                utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(newReadme)
+              ])
 
-    it "should handle a series of non-committed edits"
+    it "should properly switch to branch that is behind master", ->
+      #should i do this style more often, more lines, less indentation?
+      gitCheckout("client", "devel", true)
+      .then =>
+        gitCheckout("client", "master")
+      .then =>
+        writeRepo("client", 'index.js', "console.log('Master Work');")
+      .then =>
+        commitAll("client", "master commit")
+      .then =>
+          getCommits('client').should.eventually.have.property("length").equal(3)
+      .then =>
+        gitCheckout("client", "devel")
+      .then =>
+        sync(@clientDir, @remote)
+      .then ->
+        Promise.all([
+          getCommits('server').should.eventually.have.property("length").equal(2)
+          getCommits('client').should.eventually.have.property("length").equal(2)
+          gitHead("server").should.eventually.equal("devel")
+          isClean('server').should.eventually.equal(true)
+        ])
+
+
+    it "should properly switch to branch that is behind master w/ extra files/edits", ->
+      newReadme = "Enhanced README"
+      gitCheckout("client", "devel", true)
+      .then =>
+        gitCheckout("client", "master")
+      .then =>
+        writeRepo("client", 'index.js', "console.log('Master Work');")
+      .then =>
+        commitAll("client", "master commit")
+      .then =>
+        getCommits('client').should.eventually.have.property("length").equal(3)
+      .then =>
+        writeRepo("client", "README.md", newReadme)
+      .then =>
+        gitCheckout("client", "devel")
+      .then =>
+        sync(@clientDir, @remote)
+      .then ->
+        Promise.all([
+          getCommits('server').should.eventually.have.property("length").equal(2)
+          getCommits('client').should.eventually.have.property("length").equal(2)
+          gitHead("server").should.eventually.equal("devel")
+          isClean('server').should.eventually.equal(false)
+          utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(newReadme)
+        ])
+
 
     it "should handle a commit amendment"
 
     it "should respond properly to a git pull"
 
-    it "is ok if some files are staged"
+    it "syncs correctly when some files are staged"
 
     it "should handle an empty repo"
 
