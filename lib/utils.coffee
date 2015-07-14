@@ -14,6 +14,13 @@ module.exports =
         else
           resolve {stdout, stderr}
 
+  remoteCmd: (user, host, dir, cmd, options={})->
+    module.exports.cmd ".", "ssh #{user}@#{host} cd #{dir} && #{cmd}"
+
+  writeRemoteFile: (user, host, dir, file)->
+    console.log("WRITING REMOTE FILE", file)
+    module.exports.cmd ".", "scp #{file} #{user}@#{host}:#{dir}"
+
   readFile: (filename)->
     new Promise (resolve, reject)->
       fs.readFile filename, 'utf-8', (err,data)->

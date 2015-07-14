@@ -5,9 +5,30 @@ path = require 'path'
 
 SYNCER_REF = "__git-n-sync__/head"
 
+remoteToComponents = (remote)->
+  [arg1, arg2] = remote.split(":")
+  username = arg1.split("@")[0]
+  host = arg1.split("@")[1]
+  dir = arg2.split(".git")[0]
+  console.log("DEBUG COMPONENTS ARE", {username, host, dir})
+  return {username, host, dir}
+
 class Syncer
   constructor: ({@srcDir, @remote})->
+    @configureServer()
 
+  #TODO figure out a less clunky way to do this
+  # at some point creating the server repo should create docker
+  # container + http proxy in front of it
+  configureServer: ->
+    {username, host, dir} = remoteToComponents(@remote)
+    Promise.all [
+      #allow pushing to the active branch
+      utils.remoteCmd username, host, dir, "git config receive.denyCurrentBranch ignore"
+      destination = "#{dir}/.git/hooks/post-receive"
+      utils.writeRemoteFile(username, host, destination, "lib/postReceive.js").then ->
+        utils.remoteCmd username, host, dir, "chmod 755 #{destination}"
+    ]
 
   #ref and branch pointed to by HEAD, ex: {ref: "refs/heads/master" sha: "4ebd20c3b676a7680e07ae382e8d280c6a0e67f6"}
   getHead: ->

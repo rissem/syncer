@@ -31,6 +31,7 @@
     "rimraf": "^2.3.4"
   },
   "dependencies": {
+    "chokidar": "^1.0.3",
     "coffee-script": "^1.9.2",
     "lie": "^2.8.1"
   }

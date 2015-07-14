@@ -47,18 +47,6 @@ gitHead = (repo)->
     head = /refs\/heads\/(.*$)/.exec(contents)[1]
     Promise.resolve head
 
-configureServer = (repo)->
-  Promise.all [
-    #allow pushing to the active branch
-    utils.cmd "./#{tmpWorkspace}/#{repo}", "git config receive.denyCurrentBranch ignore"
-    utils.readFile("lib/postReceive.js").then (contents)->
-      writeRepo(repo, ".git/hooks/post-receive", contents).then (filepath)->
-        utils.cmd process.cwd(), "chmod 755 #{filepath}" #TODO should probably do this w/o shelling out
-  ]
-  # at some point creating the server repo should create docker
-  # container + http proxy in front of it
-  # also this should exist as part of the app not part of the tests
-
 commitAll = (repo, msg)->
   utils.cmd "#{tmpWorkspace}/#{repo}", "git add ."
   .then ->
@@ -118,8 +106,7 @@ describe 'Syncing', ->
     fs.mkdirSync("./#{tmpWorkspace}")
     p1 = createRepo("client").then((result)->
       fillRepo("client"))
-    p2 = createRepo("server").then (result)->
-      configureServer("server")
+    p2 = createRepo("server")
     Promise.all([p1,p2])
 
   describe 'Non-bare (empty staging area) to bare', ->
