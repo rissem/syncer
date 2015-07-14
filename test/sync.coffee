@@ -194,7 +194,7 @@ describe 'Syncing', ->
             isClean('server').should.eventually.equal(true)
           ])
 
-    it.only "should handle a branch switch w/ a dirty repo", ->
+    it "should handle a branch switch w/ a dirty repo", ->
       newReadme = "New and improved README"
       writeRepo("client", "README.md", newReadme).then =>
         sync(@clientDir, @remote).then =>
@@ -258,6 +258,7 @@ describe 'Syncing', ->
           utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(newReadme)
         ])
 
+    it "is idempotent"
 
     it "should handle a commit amendment"
 
@@ -267,4 +268,4 @@ describe 'Syncing', ->
 
     it "should handle an empty repo"
 
-    it "is idempotent"
+    it "handles deletes"

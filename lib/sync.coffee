@@ -7,7 +7,7 @@ path = require 'path'
 
 SYNCER_REF = "__git-n-sync__/head"
 
-#ref and branch pointed to by HEAD
+#ref and branch pointed to by HEAD, ex: {ref: "refs/heads/master" sha: "4ebd20c3b676a7680e07ae382e8d280c6a0e67f6"}
 getHead = (srcDir)->
   utils.readFile(path.join(srcDir, ".git", "HEAD")).then (contents)->
     # example contents: ref: /refs/heads/master, ref would be /refs/heads/master
@@ -16,8 +16,8 @@ getHead = (srcDir)->
       sha = file.split("\n")[0]
       Promise.resolve {ref, sha}
 
-#last syncer commit hash
-#also get commit message and extract the branch
+# the syncer ref stores the last pushed virtual commit
+# the commit message contains the branch the user was on when the virtual commit was pushed
 getSyncerHead = (srcDir)->
   utils.cmd(srcDir, "git show-ref --hash #{SYNCER_REF}").then ({stdout, stderr})->
     return Promise.resolve (stdout.split("\n")[0])
@@ -27,8 +27,10 @@ getSyncerHead = (srcDir)->
     Promise.resolve null
 
 
+# create a fake commit w/ last known user commit and working branch encoded in message
 commitWorkingDir = (parentCommit, message, srcDir)->
-  # create a fake commit w/ last known user commit and working branch encoded in message
+  #GIT_INDEX_FILE env variable allows you to stage files w/o in a separate file,
+  #this prevents corruption of the user's staging area
   utils.cmd(srcDir, "git add -A .", {env: {GIT_INDEX_FILE: gitIndexFile}}).then ->
     utils.cmd(srcDir, "git write-tree", {env: {GIT_INDEX_FILE: gitIndexFile}}).then ({stdout, stderr})->
       treeHash = stdout.split("\n")[0]
@@ -37,20 +39,14 @@ commitWorkingDir = (parentCommit, message, srcDir)->
         commitHash = stdout.split("\n")[0]
         Promise.resolve commitHash
 
-# Two kinds of syncs
-# a) new branch (first time syncing to branch or just switched branches)
-# push a commit w/o a parent, let server know which branch we are on
-# branch has already been synced at least once
-# push commit w/ parent = the last commit
-# in both cases update the ref to this commit and note the branch name as a symbolic ref
-
-#main entry point
+# Main entry point
 sync = (srcDir, remote)->
   getHead(srcDir).then ({ref, sha})->
     getSyncerHead(srcDir).then (syncerHead)->
       message = "git-n-sync commit, you probably shouldn't be seeing this\n\n#{ref} #{sha}"
-      # add some logic for picking the commit
-      # should only use syncerHead if branch hasn't changed
+      # if this is the first time syncing, syncerHead is null and the
+      # parent is set to the head fo the current branch
+      # for all subsequent syncs the parent is the syncer head
       commitWorkingDir(syncerHead or sha, message, srcDir).then (commitHash)->
         utils.cmd(srcDir, "git update-ref refs/#{SYNCER_REF} #{commitHash}").then ->
           command = "git push #{remote} refs/#{SYNCER_REF}:refs/#{SYNCER_REF}"
