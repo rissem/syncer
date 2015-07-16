@@ -109,6 +109,7 @@ describe 'Syncing', ->
     p2 = createRepo("server")
     Promise.all([p1,p2])
 
+  #this describe block is no longer accurate
   describe 'Non-bare (empty staging area) to bare', ->
     it 'should sync all files', ->
       Promise.all([
@@ -124,6 +125,24 @@ describe 'Syncing', ->
             getCommits('client').should.eventually.have.property("length").equal(2)
             isClean("server").should.eventually.equal(true)
           ])
+
+    it.skip "should sync when both repos are at the same commit, but have not been sycned with syncer", ->
+      #TODO this test fails to properly set up two unsynced repos w/
+      #identical commits and a normal pointer to master
+      #git log on server after push returns fatal: bad default revision 'HEAD'
+      newReadme = "New and improved README"
+      utils.remoteCmd(process.env.USER, 'localhost', "#{process.cwd()}/#{tmpWorkspace}", "git clone #{process.cwd()}/#{tmpWorkspace}/client server2").then =>
+        utils.remoteCmd(process.env.USER, 'localhost', "#{process.cwd()}/#{tmpWorkspace}/server2", "git config receive.denyCurrentBranch ignore").then =>
+          utils.cmd(@clientDir, "git push --set-upstream #{@remote}2 master").then =>
+            writeRepo("client", "README.md", newReadme).then =>
+              sync(@clientDir, "#{@remote}2").next ->
+                Promise.all([
+                  getCommits('server2').should.eventually.have.property("length").equal(2)
+                  getCommits('client').should.eventually.have.property("length").equal(2)
+                  utils.readFile("./#{tmpWorkspace}/server2/README.md").should.eventually.equal(newReadme)
+                  isClean('server2').should.eventually.equal(false)
+              ])
+
 
     it "should sync a save that is not committed", ->
       sync(@clientDir, @remote).next =>
