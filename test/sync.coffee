@@ -117,6 +117,8 @@ describe 'Syncing', ->
       ]).next (result)=>
         sync(@clientDir, @remote).next ->
           Promise.all([
+            # TODO add check that user's staging area is kept clean
+            # harder than it seems it should be w/ nodegit..
             getCommits('server').should.eventually.have.property("length").equal(2)
             utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
             getCommits('client').should.eventually.have.property("length").equal(2)

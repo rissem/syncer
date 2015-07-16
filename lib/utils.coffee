@@ -6,7 +6,8 @@ module.exports =
   cmd: (dir, cmd, options={})->
     console.log "RUN CMD #{cmd}" if process.env.DEBUG
     new Promise (resolve, reject)->
-      exec cmd, {cwd: dir}, (err, stdout, stderr)->
+      options.cwd = dir #unless options.cwd
+      exec cmd, options, (err, stdout, stderr)->
         console.error stderr if stderr
         console.log stdout if stdout and process.env.DEBUG
         if err
@@ -15,7 +16,7 @@ module.exports =
           resolve {stdout, stderr}
 
   remoteCmd: (user, host, dir, cmd, options={})->
-    module.exports.cmd ".", "ssh #{user}@#{host} cd #{dir} && #{cmd}"
+    module.exports.cmd ".", "ssh #{user}@#{host} cd #{dir} && #{cmd}", options
 
   writeRemoteFile: (user, host, dir, file)->
     console.log("WRITING REMOTE FILE", file)

@@ -1,6 +1,6 @@
 Promise = require 'lie'
 utils = require './utils'
-gitIndexFile = "index-git-n-sync"
+GIT_INDEX_FILE = ".git/index-git-n-sync"
 path = require 'path'
 
 SYNCER_REF = "__git-n-sync__/head"
@@ -14,6 +14,9 @@ remoteToComponents = (remote)->
 
 class Syncer
   constructor: ({@srcDir, @remote})->
+    # TODO
+    # turn srcDir into an absolute path
+    # add tests to make sure the user's index is kept clean
 
   #TODO figure out a less clunky way to do this
   # at some point creating the server repo should create docker
@@ -51,8 +54,8 @@ class Syncer
   commitWorkingDir: (parentCommit, message)->
     #GIT_INDEX_FILE env variable allows you to stage files w/o in a separate file,
     #this prevents corruption of the user's staging area
-    utils.cmd(@srcDir, "git add -A .", {env: {GIT_INDEX_FILE: gitIndexFile}}).then =>
-      utils.cmd(@srcDir, "git write-tree", {env: {GIT_INDEX_FILE: gitIndexFile}}).then ({stdout, stderr})=>
+    utils.cmd(@srcDir, "git add -A .", {env: {GIT_INDEX_FILE}}).then =>
+      utils.cmd(@srcDir, "git write-tree", {env: {GIT_INDEX_FILE}}).then ({stdout, stderr})=>
         treeHash = stdout.split("\n")[0]
         command = "git commit-tree #{treeHash} -p #{parentCommit} -m \"#{message}\"\n"
         utils.cmd(@srcDir, command).then ({stdout, stderr})->
