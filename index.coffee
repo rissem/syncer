@@ -1,5 +1,4 @@
 sync = require("./lib/sync")
 
-console.log("SYNC", sync)
-
-sync(process.cwd(), process.argv[process.argv.length - 1])
+repo = process.argv[process.argv.length - 1]
+sync(process.cwd(), repo)
