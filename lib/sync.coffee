@@ -76,7 +76,8 @@ class Syncer
             utils.cmd(@srcDir, command).then ({stdout, stderr})->
               console.log stdout if stdout
               console.error stderr if stderr
-              #TODO text processing happens here
+              #TODO text processing happens here, return nice object
+              #as promise
 
 sync = (srcDir, remote)->
   syncer = new Syncer({srcDir, remote})
