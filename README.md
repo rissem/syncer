@@ -17,7 +17,8 @@ The remote repo can be bare, but the initial sync will be signiciantly faster if
 `syncer --help` for full options.
 
 ## How it works
-TODO
+Git doesn't offer an easy way to push non-committed changes to a remote repo. Syncer basically creates commit unattached to any user branch and pushes those to the special `__git-n-sync__` ref on the remote. These commits also have information about the the user's `HEAD`, basically what branch they are working off and what commit that branch is pointing to.
 
+When the remote receives a commit on the special `__git-n-sync__` ref, it brings the remote's working directory up to date with the latest commit. It also moves the HEAD on the remote to the user's branch if necessary. After the sync has completed a `git diff` on the client should be identical to one on the remote*
 
-
+*currently the staging area is not copied, so if files are staged diff outpt will not be identical
