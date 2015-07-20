@@ -79,7 +79,7 @@ class Syncer
               #TODO text processing happens here, return nice object
               #as promise
 
-sync = (srcDir, remote)->
+sync = (srcDir, remote, options)->
   syncer = new Syncer({srcDir, remote})
   syncer.configureServer().then ->
     syncer.sync()

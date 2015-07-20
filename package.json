@@ -33,6 +33,8 @@
   "dependencies": {
     "chokidar": "^1.0.3",
     "coffee-script": "^1.9.2",
-    "lie": "^2.8.1"
+    "commander": "^2.8.1",
+    "lie": "^2.8.1",
+    "underscore": "^1.8.3"
   }
 }
