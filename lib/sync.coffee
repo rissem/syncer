@@ -63,6 +63,7 @@ class Syncer
           Promise.resolve commitHash
 
   sync: ->
+    syncStart = Date.now()
     @getHead(@srcDir).then ({ref, sha})=>
       @getSyncerHead(@srcDir).then (syncerHead)=>
         message = "git-n-sync commit, you probably shouldn't be seeing this\n\n#{ref} #{sha}"
@@ -72,12 +73,11 @@ class Syncer
         @commitWorkingDir(syncerHead or sha, message, @srcDir).then (commitHash)=>
           utils.cmd(@srcDir, "git update-ref refs/#{SYNCER_REF} #{commitHash}").then =>
             command = "git push #{@remote} refs/#{SYNCER_REF}:refs/#{SYNCER_REF}"
-            console.log "running command #{command}"
             utils.cmd(@srcDir, command).then ({stdout, stderr})->
-              console.log stdout if stdout
+              # console.log stdout if stdout
               console.error stderr if stderr
               #TODO text processing happens here, return nice object
-              #as promise
+              Promise.resolve({duration: Date.now() - syncStart})
 
 sync = (srcDir, remote, options)->
   syncer = new Syncer({srcDir, remote})

@@ -25,7 +25,7 @@ else
   sync(process.cwd(), repo, options)
 
 syncAfterTheStorm = _.debounce ->
-  console.log "now sync"
-  sync(process.cwd(), repo, options)
-  # should record how long these take
+  console.log "Syncing.."
+  sync(process.cwd(), repo, options).then ({duration})->
+    console.log "Sync completed in #{duration/1000.0} seconds"
 , 300
