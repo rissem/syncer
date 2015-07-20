@@ -24,7 +24,7 @@ if options.watch
     ignore = new RegExp("#{process.cwd()}/.git/objects|#{process.cwd()}/.git/refs/__git-n-sync__/head|#{process.cwd()}/.git/index-git-n-sync")
     unless ignore.exec(path)
       console.log("Chokidar event", event, path) if scanComplete and options.verbose
-j      syncAfterTheStorm()
+      syncAfterTheStorm()
 
   watcher.on 'ready', ->
     scanComplete = true

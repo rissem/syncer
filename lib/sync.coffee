@@ -108,10 +108,13 @@ class Syncer
           updates.push {action: "Added", filename}
         if action == "D"
           updates.push {action: "Deleted", filename}
+        if action == "R"
+          updates.push {action: "Renamed", filename}
+        if action == "C"
+          updates.push {action: "Copied", filename}
     return {updates}
 
-
-sync = (srcDir, remote, options)->
+sync = (srcDir, remote, options={})->
   process.env.DEBUG = true if options.verbose
   syncer = new Syncer({srcDir, remote})
   syncer.configureServer().then ->
