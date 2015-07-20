@@ -76,7 +76,8 @@ class Syncer
             command = "git push #{@remote} refs/#{SYNCER_REF}:refs/#{SYNCER_REF}"
             utils.cmd(@srcDir, command).then ({stdout, stderr})=>
               syncData = @processRemoteOutput(stderr)
-              Promise.resolve({duration: Date.now() - syncStart, syncData})
+              _.extend syncData, {duration: Date.now()-syncStart}
+              Promise.resolve(syncData)
 
 
   processRemoteOutput: (remoteOutput)->
@@ -111,6 +112,7 @@ class Syncer
 
 
 sync = (srcDir, remote, options)->
+  process.env.DEBUG = true if options.verbose
   syncer = new Syncer({srcDir, remote})
   syncer.configureServer().then ->
     syncer.sync()
