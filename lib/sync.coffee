@@ -2,6 +2,7 @@ Promise = require 'lie'
 utils = require './utils'
 GIT_INDEX_FILE = ".git/index-git-n-sync"
 path = require 'path'
+_ = require 'underscore'
 
 SYNCER_REF = "__git-n-sync__/head"
 
@@ -73,11 +74,41 @@ class Syncer
         @commitWorkingDir(syncerHead or sha, message, @srcDir).then (commitHash)=>
           utils.cmd(@srcDir, "git update-ref refs/#{SYNCER_REF} #{commitHash}").then =>
             command = "git push #{@remote} refs/#{SYNCER_REF}:refs/#{SYNCER_REF}"
-            utils.cmd(@srcDir, command).then ({stdout, stderr})->
-              # console.log stdout if stdout
-              console.error stderr if stderr
-              #TODO text processing happens here, return nice object
-              Promise.resolve({duration: Date.now() - syncStart})
+            utils.cmd(@srcDir, command).then ({stdout, stderr})=>
+              syncData = @processRemoteOutput(stderr)
+              Promise.resolve({duration: Date.now() - syncStart, syncData})
+
+
+  processRemoteOutput: (remoteOutput)->
+    # try parsing remote output
+    # if we can't parse it just spit it all out and return an error
+
+    #Other info we need or would be nice
+    #last sync time
+    #did a branch switch occur
+    #was this the first sync ever?
+
+    #strip out the 'remote:' prefix
+    output = _.reduce remoteOutput.split("\n"), (memo, line)->
+      memo + (line.split("remote: ")[1] or "") + "\n"
+    , ""
+
+    #hack for multi line regex
+    summaryDiff = /<SUMMARY DIFF>([.\s\S]*)<\/SUMMARY DIFF>/.exec(output)[1]
+
+    updates = []
+    for line in summaryDiff.split("\n")
+      match = /\s([A-Z])\s*([\S]*)\s*/.exec(line)
+      if match
+        [ignore, action, filename] = match
+        if action == "M"
+          updates.push {action: "Updated", filename}
+        if action == "A"
+          updates.push {action: "Added", filename}
+        if action == "D"
+          updates.push {action: "Deleted", filename}
+    return {updates}
+
 
 sync = (srcDir, remote, options)->
   syncer = new Syncer({srcDir, remote})

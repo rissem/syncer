@@ -37,7 +37,6 @@ writeRepo = (repo, filepath, contents)->
 
 gitCheckout = (repo, branch, create=false)->
   command = "git checkout #{if create then '-b ' else ''}#{branch}"
-  console.log "COMMAND", command
   utils.cmd "#{tmpWorkspace}/#{repo}", command
 
 gitHead = (repo)->
