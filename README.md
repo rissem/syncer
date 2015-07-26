@@ -16,6 +16,8 @@ Remote repo currently must be a SSH clone URL. The syncer uses the SSH connectio
 The remote repo can be bare, but the initial sync will be signiciantly faster if it already has commits in it. See
 `syncer --help` for full options.
 
+The remote also must have NodeJS installed and on the path as `/usr/local/bin/node`.
+
 ## How it works
 Git doesn't offer an easy way to push non-committed changes to a remote repo. Syncer basically creates commit unattached to any user branch and pushes those to the special `__git-n-sync__` ref on the remote. These commits also have information about the the user's `HEAD`, basically what branch they are working off and what commit that branch is pointing to.
 
