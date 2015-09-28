@@ -40,17 +40,6 @@ class Syncer
         sha = file.split("\n")[0]
         Promise.resolve {ref, sha}
 
-  # the syncer ref stores the last pushed virtual commit
-  # the commit message contains the branch the user was on when the virtual commit was pushed
-  getSyncerHead: ->
-    utils.cmd(@srcDir, "git show-ref --hash #{SYNCER_REF}").then ({stdout, stderr})->
-      return Promise.resolve (stdout.split("\n")[0])
-    , ({stdout, stderr})-> #if ref doesn't exist just return a promise that resolves to null
-      console.log stdout if stdout
-      console.error stderr if stderr
-      Promise.resolve null
-
-
   # create a fake commit w/ last known user commit and working branch encoded in message
   commitWorkingDir: (parentCommit, message)->
     #GIT_INDEX_FILE env variable allows you to stage files w/o in a separate file,
@@ -66,21 +55,24 @@ class Syncer
   sync: ->
     syncStart = Date.now()
     @getHead(@srcDir).then ({ref, sha})=>
-      @getSyncerHead(@srcDir).then (syncerHead)=>
-        message = "git-n-sync commit, you probably shouldn't be seeing this\n\n#{ref} #{sha}"
-        # if this is the first time syncing, syncerHead is null and the
-        # parent is set to the head fo the current branch
-        # for all subsequent syncs the parent is the syncer head
-        @commitWorkingDir(syncerHead or sha, message, @srcDir).then (commitHash)=>
-          utils.cmd(@srcDir, "git update-ref refs/#{SYNCER_REF} #{commitHash}").then =>
-            command = "git push #{@remote} refs/#{SYNCER_REF}:refs/#{SYNCER_REF}"
-            utils.cmd(@srcDir, command).then ({stdout, stderr})=>
-              syncData = @processRemoteOutput(stderr)
-              _.extend syncData, {duration: Date.now()-syncStart}
-              Promise.resolve(syncData)
+      message = "git-n-sync commit, you probably shouldn't be seeing this\n\n#{ref} #{sha}"
+
+      #all commits
+      @commitWorkingDir(sha, message).then (commitHash)=>
+        utils.cmd(@srcDir, "git update-ref refs/#{SYNCER_REF} #{commitHash}").then =>
+          command = "git push --force #{@remote} refs/#{SYNCER_REF}:refs/#{SYNCER_REF}"
+          utils.cmd(@srcDir, command).then ({stdout, stderr})=>
+            if process.env.DEBUG
+              console.log stdout
+              console.error stderr
+            syncData = @processRemoteOutput(stderr)
+            _.extend syncData, {duration: Date.now()-syncStart}
+            Promise.resolve(syncData)
 
 
   processRemoteOutput: (remoteOutput)->
+    # console.log("REMOTE OUTPUT", remoteOutput)
+
     # try parsing remote output
     # if we can't parse it just spit it all out and return an error
 
@@ -95,7 +87,16 @@ class Syncer
     , ""
 
     #hack for multi line regex
-    summaryDiff = /<SUMMARY DIFF>([.\s\S]*)<\/SUMMARY DIFF>/.exec(output)[1]
+    summaryDiffRegex = /<SUMMARY DIFF>([.\s\S]*)<\/SUMMARY DIFF>/
+    unless summaryDiffRegex.test(output)
+      console.log "!!!!!!!!!!!!!!!!!!"
+      console.log "UNEXPECTED FAILURE"
+      console.log "!!!!!!!!!!!!!!!!!!"
+      console.log output
+      process.exit(1)
+      return
+
+    summaryDiff = summaryDiffRegex.exec(output)[1]
 
     updates = []
     for line in summaryDiff.split("\n")

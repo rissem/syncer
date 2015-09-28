@@ -191,6 +191,29 @@ describe 'Syncing', ->
       .then =>
          utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v4")
 
+    #TODO better name up here..
+    it "should handle a commit on the client after a sync has occurred", ->
+      writeRepo("client", "README.md", "v2")
+      .then =>
+        sync(@clientDir, @remote)
+      .then =>
+         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v2")
+      .then =>
+        writeRepo("client", "README.md", "v3")
+      .then =>
+        commitAll("client", "A new commit is upon us")
+      .then =>
+        sync(@clientDir, @remote)
+      .then =>
+         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v3")
+      .then =>
+        writeRepo("client", "README.md", "v4")
+      .then =>
+        sync(@clientDir, @remote)
+      .then =>
+         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v4")
+
+
     it "should handle a non-master branch", ->
       gitCheckout("client", "devel", true).then =>
         sync(@clientDir, @remote).then ->
