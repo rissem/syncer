@@ -14,7 +14,8 @@ remoteToComponents = (remote)->
   return {username, host, dir}
 
 class Syncer
-  constructor: ({@srcDir, @remote})->
+  constructor: ({@srcDir, @remote, @verbose})->
+    @newSyncNeeded = false
     # TODO
     # turn srcDir into an absolute path
     # add tests to make sure the user's index is kept clean
@@ -52,7 +53,21 @@ class Syncer
           commitHash = stdout.split("\n")[0]
           Promise.resolve commitHash
 
+  # if no sync is in progress, sync and return results
+  # if sync is in progress, make sure a new sync happens after
+
   sync: ->
+    if @syncInProgress
+      # console.log "sync in progress"
+      subsequentSync = new Promise (resolve, reject)=>
+        @nextSync = =>
+          # console.log("subsequent sync beginning")
+          return new Promise(@sync())
+      #return a promise that resolves after next sync is happened 
+      return subsequentSync
+
+    @syncInProgress = true
+    #if a sync is in progress then just queue this up
     syncStart = Date.now()
     @getHead(@srcDir).then ({ref, sha})=>
       message = "git-n-sync commit, you probably shouldn't be seeing this\n\n#{ref} #{sha}"
@@ -62,11 +77,16 @@ class Syncer
         utils.cmd(@srcDir, "git update-ref refs/#{SYNCER_REF} #{commitHash}").then =>
           command = "git push --force #{@remote} refs/#{SYNCER_REF}:refs/#{SYNCER_REF}"
           utils.cmd(@srcDir, command).then ({stdout, stderr})=>
-            if process.env.DEBUG
+            if @verbose
               console.log stdout
               console.error stderr
             syncData = @processRemoteOutput(stderr)
             _.extend syncData, {duration: Date.now()-syncStart}
+            @syncInProgress = false
+            if @nextSync
+              tmp = @nextSync
+              @nextSync = null
+              tmp()
             Promise.resolve(syncData)
 
 
@@ -82,6 +102,8 @@ class Syncer
     #was this the first sync ever?
 
     #strip out the 'remote:' prefix
+    console.log "raw output", remoteOutput if @verbose
+
     output = _.reduce remoteOutput.split("\n"), (memo, line)->
       memo + (line.split("remote: ")[1] or "") + "\n"
     , ""
@@ -115,11 +137,5 @@ class Syncer
           updates.push {action: "Copied", filename}
     return {updates}
 
-sync = (srcDir, remote, options={})->
-  process.env.DEBUG = true if options.verbose
-  syncer = new Syncer({srcDir, remote})
-  syncer.configureServer().then ->
-    syncer.sync()
 
-
-module.exports = sync
+module.exports = Syncer

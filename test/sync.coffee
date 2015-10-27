@@ -7,10 +7,15 @@ rimraf = require "rimraf"
 fs = require 'fs'
 Promise = require 'lie'
 nodegit = require "nodegit"
-sync = require '../lib/sync'
+Syncer = require '../lib/sync'
 utils = require '../lib/utils'
 
 tmpWorkspace = ".test-tmp"
+
+sync = (clientDir, remote)->
+  syncer = new Syncer {srcDir: clientDir, remote}
+  syncer.configureServer()
+  syncer.sync()
 
 #TODO path independent filenames
 
