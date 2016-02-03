@@ -1,6 +1,6 @@
 {
   "name": "git-n-sync",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Keeps a local git repo tightly synced w/ a remote",
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha --compilers coffee:coffee-script/register"
@@ -31,7 +31,7 @@
     "rimraf": "^2.3.4"
   },
   "dependencies": {
-    "chokidar": "^1.0.3",
+    "chokidar": "^1.4.2",
     "coffee-script": "^1.9.2",
     "commander": "^2.8.1",
     "lie": "^2.8.1",

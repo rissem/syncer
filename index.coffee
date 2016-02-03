@@ -20,27 +20,31 @@ scanComplete = false
 syncer = new Syncer(srcDir:process.cwd(), remote:repo, verbose: options.verbose)
 
 display = (results)->
-  results.then ({duration, updates})->
+  results.then (result)->
+    return unless result
+    {updates, duration} = result
     console.log "#{update.action} #{update.filename}" for update in updates
     if updates.length == 0
       console.log "No changes were synced"
     console.log "Sync completed in #{duration/1000.0} seconds"
 
-if options.watch
-  watcher = chokidar.watch(process.cwd(), {})
-  watcher.on 'all', (event, path)->
-    #ignore objects created by syncer
+#really only need to do this once, not every time the syncer is started
+syncer.configureServer().then  ->
+  if options.watch
     ignore = new RegExp("#{process.cwd()}/.git/objects|#{process.cwd()}/.git/refs/__git-n-sync__/head|#{process.cwd()}/.git/index-git-n-sync")
-    unless ignore.exec(path)
-      console.log("Chokidar event", event, path) if scanComplete and options.verbose
-      # console.log("now sync")
+    watcher = chokidar.watch(process.cwd(), {})
+    # TODO get smarter about what to ignore
+    # watcher = chokidar.watch(process.cwd(), {ignored: /[\/\\]\./})
+    watcher.on 'all', (event, path)->
+      unless ignore.exec(path)
+        console.log("Chokidar event", event, path) if scanComplete and options.verbose
+        if scanComplete
+          display(syncer.sync())
+
+    watcher.on 'ready', ->
+      console.log(new Date(), "WATCHER IS READY") if options.verbose
+      scanComplete = true
       display(syncer.sync())
 
-  watcher.on 'ready', ->
-    # console.log("WATCHER IS READY")
-    scanComplete = true
-
-else
-  display(syncer.sync())
-
-
+  else
+    display(syncer.sync())

@@ -58,41 +58,38 @@ class Syncer
 
   sync: ->
     if @syncInProgress
-      # console.log "sync in progress"
+      return Promise.resolve(null) if @nextSync
       subsequentSync = new Promise (resolve, reject)=>
         @nextSync = =>
           # console.log("subsequent sync beginning")
           return new Promise(@sync())
-      #return a promise that resolves after next sync is happened 
-      return subsequentSync
+      #return a promise that resolves after next sync has happened
+    else
+      @syncInProgress = true
+      #if a sync is in progress then just queue this up
+      syncStart = Date.now()
+      @getHead(@srcDir).then ({ref, sha})=>
+        message = "git-n-sync commit, you probably shouldn't be seeing this\n\n#{ref} #{sha}"
 
-    @syncInProgress = true
-    #if a sync is in progress then just queue this up
-    syncStart = Date.now()
-    @getHead(@srcDir).then ({ref, sha})=>
-      message = "git-n-sync commit, you probably shouldn't be seeing this\n\n#{ref} #{sha}"
-
-      #all commits
-      @commitWorkingDir(sha, message).then (commitHash)=>
-        utils.cmd(@srcDir, "git update-ref refs/#{SYNCER_REF} #{commitHash}").then =>
-          command = "git push --force #{@remote} refs/#{SYNCER_REF}:refs/#{SYNCER_REF}"
-          utils.cmd(@srcDir, command).then ({stdout, stderr})=>
-            if @verbose
-              console.log stdout
-              console.error stderr
-            syncData = @processRemoteOutput(stderr)
-            _.extend syncData, {duration: Date.now()-syncStart}
-            @syncInProgress = false
-            if @nextSync
-              tmp = @nextSync
-              @nextSync = null
-              tmp()
-            Promise.resolve(syncData)
+        #all commits
+        @commitWorkingDir(sha, message).then (commitHash)=>
+          utils.cmd(@srcDir, "git update-ref refs/#{SYNCER_REF} #{commitHash}").then =>
+            command = "git push --force #{@remote} refs/#{SYNCER_REF}:refs/#{SYNCER_REF}"
+            utils.cmd(@srcDir, command).then ({stdout, stderr})=>
+              if @verbose
+                console.log stdout
+                console.error stderr
+              syncData = @processRemoteOutput(stderr)
+              _.extend syncData, {duration: Date.now()-syncStart}
+              @syncInProgress = false
+              if @nextSync
+                tmp = @nextSync
+                @nextSync = null
+                tmp()
+              Promise.resolve(syncData)
 
 
   processRemoteOutput: (remoteOutput)->
-    # console.log("REMOTE OUTPUT", remoteOutput)
-
     # try parsing remote output
     # if we can't parse it just spit it all out and return an error
 
@@ -102,7 +99,7 @@ class Syncer
     #was this the first sync ever?
 
     #strip out the 'remote:' prefix
-    console.log "raw output", remoteOutput if @verbose
+    # console.log "raw output", remoteOutput if @verbose
 
     output = _.reduce remoteOutput.split("\n"), (memo, line)->
       memo + (line.split("remote: ")[1] or "") + "\n"
@@ -114,7 +111,7 @@ class Syncer
       console.log "!!!!!!!!!!!!!!!!!!"
       console.log "UNEXPECTED FAILURE"
       console.log "!!!!!!!!!!!!!!!!!!"
-      console.log output
+      console.log remoteOutput
       process.exit(1)
       return
 
