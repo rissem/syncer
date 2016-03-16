@@ -2,18 +2,33 @@ program = require "commander"
 chokidar = require 'chokidar'
 _ = require "underscore"
 
+repo = ''
+
 program
   .version('0.1.0')
-  .description("sync this repo w/ a remote")
+  .description("Sync this repo with a remote.")
   .option('-f --force', "force server to be identical to client")
   .option('-w --watch', "watch the project and sync on changes")
   .option('-v --verbose', "include debug output")
-  .parse(process.argv)
+  .arguments('<remote_repo>')
+  .action((remote_repo) -> repo = remote_repo)
+
+program.on '--help', ->
+  console.log '  Arguments:'
+  console.log ''
+  console.log '    <remote_repo>  (required) format: \`user@host:path-to-repo\`'
+  console.log ''
+  console.log '  Example:'
+  console.log ''
+  console.log '    $ syncer --watch --verbose root@10.0.0.1:/rootdir/myrepo'
+  console.log ''
+
+program.parse(process.argv)
+program.help() if !repo
 
 Syncer = require("./lib/sync")
 
 options = {watch: program.watch?, force: program.force?, verbose: program.verbose?}
-repo = process.argv[process.argv.length - 1]
 
 scanComplete = false
 
