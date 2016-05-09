@@ -3,6 +3,7 @@ utils = require './utils'
 GIT_INDEX_FILE = ".git/index-git-n-sync"
 path = require 'path'
 _ = require 'underscore'
+tray = require("./tray")
 
 SYNCER_REF = "__git-n-sync__/head"
 
@@ -66,6 +67,7 @@ class Syncer
       #return a promise that resolves after next sync has happened
     else
       @syncInProgress = true
+      tray.setSyncing()
       #if a sync is in progress then just queue this up
       syncStart = Date.now()
       @getHead(@srcDir).then ({ref, sha})=>
@@ -82,6 +84,7 @@ class Syncer
               syncData = @processRemoteOutput(stderr)
               _.extend syncData, {duration: Date.now()-syncStart}
               @syncInProgress = false
+              tray.setSynced()
               if @nextSync
                 tmp = @nextSync
                 @nextSync = null

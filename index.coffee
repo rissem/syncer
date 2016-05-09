@@ -43,6 +43,7 @@ syncers = config.repos.map (repo)->
 
 display = (results)->
   results.then (result)->
+
     return unless result
     {updates, duration} = result
     console.log "#{update.action} #{update.filename}" for update in updates
