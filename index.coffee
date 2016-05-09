@@ -15,7 +15,9 @@ syncers = config.repos.map (repo)->
     verbose: config.options.verbose})
 
     #really only need to do this once, not every time the syncer is started
+  console.log("configuring server") if config.options.verbose
   syncer.configureServer().then  ->
+    console.log("server configured") if config.options.verbose
     if config.options.watch
       console.log("watching!", repo.local)
       ignore = new RegExp("#{repo.local}/.git/objects|#{repo.local}/.git/refs/__git-n-sync__/head|#{repo.local}/.git/index-git-n-sync")
@@ -35,6 +37,8 @@ syncers = config.repos.map (repo)->
 
     else
       display(syncer.sync())
+  , (err)->
+      console.error(err)
 
 
 display = (results)->
