@@ -41,6 +41,8 @@ class Syncer
       utils.readFile(path.join(@srcDir, ".git", ref)).then (file)->
         sha = file.split("\n")[0]
         Promise.resolve {ref, sha}
+      , (err)->
+        console.error("FAILURE READING FILE", ref, err)
 
   # create a fake commit w/ last known user commit and working branch encoded in message
   commitWorkingDir: (parentCommit, message)->
@@ -72,7 +74,6 @@ class Syncer
       syncStart = Date.now()
       @getHead(@srcDir).then ({ref, sha})=>
         message = "git-n-sync commit, you probably shouldn't be seeing this\n\n#{ref} #{sha}"
-
         #all commits
         @commitWorkingDir(sha, message).then (commitHash)=>
           utils.cmd(@srcDir, "git update-ref refs/#{SYNCER_REF} #{commitHash}").then =>
