@@ -22,9 +22,17 @@
   },
   "homepage": "https://github.com/rissem/syncer",
   "devDependencies": {
+    "babel-eslint": "^7.1.0",
     "chai": "^2.3.0",
     "chai-as-promised": "^5.0.0",
     "electron-rebuild": "^1.1.5",
+    "eslint": "^3.8.1",
+    "eslint-config-standard": "^6.2.1",
+    "eslint-plugin-import": "^2.0.1",
+    "eslint-plugin-jsx-a11y": "^2.2.3",
+    "eslint-plugin-promise": "^3.3.0",
+    "eslint-plugin-react": "^6.4.1",
+    "eslint-plugin-standard": "^2.0.1",
     "mocha": "^2.2.5",
     "nodegit": "^0.11.6",
     "rimraf": "^2.3.4"
