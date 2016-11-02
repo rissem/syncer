@@ -309,6 +309,6 @@ const chai = require('chai')
 
 describe('test test', function () {
   it('should pass', function () {
-    chai.assert.equal(5, 5)
+    chai.assert.equal(5, 6)
   })
 })
