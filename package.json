@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Keeps a local git repo tightly synced w/ a remote",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha --compilers coffee:coffee-script/register",
+    "test": "electron test.js",
     "start": "electron main.js"
   },
   "repository": {
@@ -34,7 +34,7 @@
     "eslint-plugin-react": "^6.4.1",
     "eslint-plugin-standard": "^2.0.1",
     "mocha": "^2.2.5",
-    "nodegit": "^0.11.6",
+    "nodegit": "^0.11.9",
     "rimraf": "^2.3.4"
   },
   "dependencies": {
