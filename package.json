@@ -39,7 +39,6 @@
   },
   "dependencies": {
     "chokidar": "^1.4.2",
-    "coffee-script": "^1.9.2",
     "electron-prebuilt": "^1.1.2",
     "lie": "^2.8.1",
     "underscore": "^1.8.3"
