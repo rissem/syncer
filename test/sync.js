@@ -1,137 +1,147 @@
-/*
-chai = require('chai');
-chai.should();
-chaiAsPromised = require("chai-as-promised");
-chai.use(chaiAsPromised);
+const chai = require('chai')
+chai.should()
+const chaiAsPromised = require('chai-as-promised')
+chai.use(chaiAsPromised)
 
-rimraf = require "rimraf"
-fs = require 'fs'
-Promise = require 'lie'
-nodegit = require "nodegit"
-Syncer = require '../lib/sync'
-utils = require '../lib/utils'
+const rimraf = require('rimraf')
+const fs = require('fs')
+const Syncer = require('../lib/sync')
+const utils = require('../lib/utils')
+const nodegit = require('nodegit')
 
-tmpWorkspace = ".test-tmp"
+const tmpWorkspace = '.test-tmp'
 
-sync = (clientDir, remote)->
-  syncer = new Syncer {srcDir: clientDir, remote}
+const sync = (clientDir, remote) => {
+  const syncer = new Syncer({srcDir: clientDir, remote})
   syncer.configureServer()
-  syncer.sync()
+  return syncer.sync()
+}
 
-#TODO path independent filenames
+const createRepo = (repo) => {
+  return utils.cmd(tmpWorkspace, `git init ${repo}`)
+}
 
-Promise.prototype.next = (func)->
-  new Promise (resolve, reject)=>
-    this.then (result)->
-      func(result).then (result)->
-        resolve(result)
-      , (reason)->
-        reject(reason)
-      .catch (e)->
-        reject(e)
-    , (reason)->
-      reject(reason)
-      return this
-    .catch (e)->
-      reject(e)
+const writeRepo = (repo, filepath, contents) => {
+  return utils.writeFile(`./${tmpWorkspace}/${repo}/${filepath}`, contents)
+}
 
-createRepo = (repo)->
-  utils.cmd tmpWorkspace, "git init #{repo}"
+const gitCheckout = (repo, branch, create = false) => {
+  let command = null
+  if (create) {
+    command = `git checkout -b ${branch}`
+  } else {
+    command = `git checkout ${branch}`
+  }
+  return utils.cmd(`${tmpWorkspace}/${repo}`, command)
+}
 
-writeRepo = (repo, filepath, contents)->
-  utils.writeFile "./#{tmpWorkspace}/#{repo}/#{filepath}", contents
+const gitHead = (repo) => {
+  return utils.readFile(`${tmpWorkspace}/${repo}/.git/HEAD`).then((contents) => {
+    // match = /refs\/heads\/(.*$)/.match(contents)[1]
+    // console.log("MATCH", match)
+    const head = /refs\/heads\/(.*$)/.exec(contents)[1]
+    return Promise.resolve(head)
+  })
+}
 
-gitCheckout = (repo, branch, create=false)->
-  command = "git checkout #{if create then '-b ' else ''}#{branch}"
-  utils.cmd "#{tmpWorkspace}/#{repo}", command
+const commitAll = (repo, msg) => {
+  utils.cmd(`${tmpWorkspace}/${repo}`, 'git add .').then(() => {
+    return utils.cmd(`${tmpWorkspace}/${repo}`, `git commit -m "${msg}"`)
+  })
+}
 
-gitHead = (repo)->
-  utils.readFile("#{tmpWorkspace}/#{repo}/.git/HEAD").then (contents)->
-    # match = /refs\/heads\/(.*$)/.match(contents)[1]
-    # console.log("MATCH", match)
-    head = /refs\/heads\/(.*$)/.exec(contents)[1]
-    Promise.resolve head
+const isClean = (repo) => {
+  nodegit.Repository.open(`${tmpWorkspace}/#{repo}`).then((repo) => {
+    repo.getStatus().then((statuses) => {
+      Promise.resolve(statuses.length === 0)
+    })
+  })
+}
 
-commitAll = (repo, msg)->
-  utils.cmd "#{tmpWorkspace}/#{repo}", "git add ."
-  .then ->
-    utils.cmd "#{tmpWorkspace}/#{repo}", "git commit -m \"#{msg}\""
-
-isClean = (repo)->
-  nodegit.Repository.open("#{tmpWorkspace}/#{repo}").then (repo) ->
-    repo.getStatus().then (statuses)->
-      Promise.resolve statuses.length == 0
-
-getCommits = (repo)->
-  commits = []
-  nodegit.Repository.open("#{tmpWorkspace}/#{repo}")
-  .then (repo) ->
-    if repo.isEmpty()
-      return Promise.resolve null
-    else
+const getCommits = (repo) => {
+  const commits = []
+  nodegit.Repository.open(`#{tmpWorkspace}/#{repo}`).then((repo) => {
+    if (repo.isEmpty()) {
+      return Promise.resolve(null)
+    } else {
       repo.getHeadCommit()
-  .then (firstComitOnMaster) ->
-    if firstComitOnMaster == null
-      return Promise.resolve null
-    history = firstComitOnMaster.history()
-
-    history.on "commit", (commit)->
-      commits.push {msg: commit.message()}
-
+    }
+  }).then((firstComitOnMaster) => {
+    if (firstComitOnMaster === null) {
+      return Promise.resolve(null)
+    }
+    const history = firstComitOnMaster.history()
+    history.on('commit', (commit) => {
+      commits.push({msg: commit.message()})
+    })
     history.start()
-    return new Promise (resolve, reject)->
+    return new Promise((resolve, reject) => {
       resolve(history)
-  .then (history)->
-    if history == null
+    })
+  }).then((history) => {
+    if (history == null) {
       return []
-    return new Promise (resolve, reject)->
-      history.on "end", ->
+    }
+    return new Promise((resolve, reject) => {
+      history.on('end', () => {
         resolve(commits)
+      })
+    })
+  })
+}
 
-describe 'Syncing', ->
-  readmeContents = "README"
+describe('Syncing', function () {
+  const readmeContents = 'README'
 
-  addREADME = (repo, contents=readmeContents)->
-    writeRepo(repo, "README.md", contents)
+  const addREADME = (repo, contents = readmeContents) => {
+    return writeRepo(repo, 'README.md', contents)
+  }
 
-  fillRepo = (repo)->
-    addREADME repo
-    .then ->
-      commitAll(repo, "commit README")
-    .then ->
+  const fillRepo = (repo) => {
+    addREADME(repo)
+    .then(() => {
+      commitAll(repo, 'commit README')
+    }).then(() => {
       writeRepo(repo, 'index.js', "console.log('Helo World');")
-    .then ->
-      commitAll(repo, "add index.js")
+    }).then(() => {
+      commitAll(repo, 'add index.js')
+    })
+  }
 
-  beforeEach ->
-    @clientDir = "#{tmpWorkspace}/client"
-    @remote = "#{process.env.USER}@localhost:#{process.cwd()}/#{tmpWorkspace}/server"
-    #remove tmp dir if it exists
-    rimraf.sync("./#{tmpWorkspace}")
-    fs.mkdirSync("./#{tmpWorkspace}")
-    p1 = createRepo("client").then((result)->
-      fillRepo("client"))
-    p2 = createRepo("server")
-    Promise.all([p1,p2])
+  beforeEach(function () {
+    this.clientDir = `${tmpWorkspace}/client`
+    this.remote = `${process.env.USER}@localhost:${process.cwd()}/${tmpWorkspace}/server`
+    rimraf.sync(`./#{tmpWorkspace}`)
+    fs.mkdirSync(`./#{tmpWorkspace}`)
+    const p1 = createRepo('client').then((result) => {
+      fillRepo('client')
+    })
+    const p2 = createRepo('server')
+    return Promise.all([p1, p2])
+  })
 
-  #this describe block is no longer accurate
-  describe 'Non-bare (empty staging area) to bare', ->
-    it 'should sync all files', ->
+  describe('Non-bare (empty staging area) to bare', function () {
+    it('should sync all files', function () {
       Promise.all([
-        getCommits('client').should.eventually.have.property("length").equal(2),
-        getCommits('server').should.eventually.have.property("length").equal(0)
-      ]).next (result)=>
-        sync(@clientDir, @remote).next ->
+        getCommits('client').should.eventually.have.property('length').equal(2),
+        getCommits('server').should.eventually.have.property('length').equal(0)
+      ]).next((result) => {
+        sync(this.clientDir, this.remote).next(() => {
           Promise.all([
-            # TODO add check that user's staging area is kept clean
-            # harder than it seems it should be w/ nodegit..
-            getCommits('server').should.eventually.have.property("length").equal(2)
-            utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
-            getCommits('client').should.eventually.have.property("length").equal(2)
-            isClean("server").should.eventually.equal(true)
+            // TODO add check that user's staging area is kept clean
+            // harder than it seems it should be w/ nodegit..
+            getCommits('server').should.eventually.have.property('length').equal(2),
+            utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal(readmeContents),
+            getCommits('client').should.eventually.have.property('length').equal(2),
+            isClean('server').should.eventually.equal(true)
           ])
+        })
+      })
+    })
+  })
 
-    it.skip "should sync when both repos are at the same commit, but have not been sycned with syncer", ->
+/* TODO convert these tests
+it.skip "should sync when both repos are at the same commit, but have not been sycned with syncer", ->
       #TODO this test fails to properly set up two unsynced repos w/
       #identical commits and a normal pointer to master
       #git log on server after push returns fatal: bad default revision 'HEAD'
@@ -302,13 +312,4 @@ describe 'Syncing', ->
 
     it "handles deletes"
 */
-
-/* global describe it */
-
-const chai = require('chai')
-
-describe('test test', function () {
-  it('should pass', function () {
-    chai.assert.equal(5, 6)
-  })
 })
