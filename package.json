@@ -4,7 +4,8 @@
   "description": "Keeps a local git repo tightly synced w/ a remote",
   "scripts": {
     "test": "electron test.js",
-    "start": "electron main.js"
+    "start": "electron main.js",
+    "console": "electron console.js"
   },
   "repository": {
     "type": "git",
@@ -34,7 +35,6 @@
     "eslint-plugin-react": "^6.4.1",
     "eslint-plugin-standard": "^2.0.1",
     "mocha": "^2.2.5",
-    "nodegit": "^0.11.9",
     "rimraf": "^2.3.4"
   },
   "dependencies": {
