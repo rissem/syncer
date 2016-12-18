@@ -44,52 +44,44 @@ describe('Syncing', function () {
     })
   })
 
-/* TODO convert these tests
-it.skip "should sync when both repos are at the same commit, but have not been sycned with syncer", ->
-      #TODO this test fails to properly set up two unsynced repos w/
-      #identical commits and a normal pointer to master
-      #git log on server after push returns fatal: bad default revision 'HEAD'
-      newReadme = "New and improved README"
-      utils.remoteCmd(process.env.USER, 'localhost', "#{process.cwd()}/#{tmpWorkspace}", "git clone #{process.cwd()}/#{tmpWorkspace}/client server2").then =>
-        utils.remoteCmd(process.env.USER, 'localhost', "#{process.cwd()}/#{tmpWorkspace}/server2", "git config receive.denyCurrentBranch ignore").then =>
-          utils.cmd(@clientDir, "git push --set-upstream #{@remote}2 master").then =>
-            writeRepo("client", "README.md", newReadme).then =>
-              sync(@clientDir, "#{@remote}2").next ->
-                Promise.all([
-                  getCommits('server2').should.eventually.have.property("length").equal(2)
-                  getCommits('client').should.eventually.have.property("length").equal(2)
-                  utils.readFile("./#{tmpWorkspace}/server2/README.md").should.eventually.equal(newReadme)
-                  isClean('server2').should.eventually.equal(false)
-              ])
-
-    it "should sync a save that is not committed", ->
-      sync(@clientDir, @remote).next =>
-        Promise.all([
-          getCommits('server').should.eventually.have.property("length").equal(2)
-          utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(readmeContents)
-          getCommits('client').should.eventually.have.property("length").equal(2)
-        ]).next =>
-          newReadme = "New and improved README"
-          writeRepo("client", "README.md", newReadme).next =>
-            sync(@clientDir, @remote).next ->
-              Promise.all([
-                getCommits('server').should.eventually.have.property("length").equal(2)
-                getCommits('client').should.eventually.have.property("length").equal(2)
-                utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(newReadme)
-                isClean('server').should.eventually.equal(false)
-              ])
-
-    it "should handle an unsynced repo with a dirty working copy", ->
-      newReadme = "New and improved README"
-      writeRepo("client", "README.md", newReadme).next =>
-        sync(@clientDir, @remote).next ->
-          Promise.all([
-            getCommits('server').should.eventually.have.property("length").equal(2)
-            getCommits('client').should.eventually.have.property("length").equal(2)
-            utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal(newReadme)
-            isClean('server').should.eventually.equal(false)
+  it('should sync a save that is not committed', function() {
+    return tu.sync(this.clientDir, this.remote).then(() => {
+      return Promise.all([
+        tu.getCommits('server').should.eventually.have.property('length').equal(2),
+        utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal(readmeContents),
+        tu.getCommits('client').should.eventually.have.property('length').equal(2)
+      ])
+    }).then(() => {
+      const newReadme = 'New and improved README'
+      return tu.writeRepo('client', 'README.md', newReadme).then(() => {
+        return tu.sync(this.clientDir, this.remote).then(() => {
+          return Promise.all([
+            tu.getCommits('server').should.eventually.have.property('length').equal(2),
+            tu.getCommits('client').should.eventually.have.property('length').equal(2),
+            utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal(newReadme),
+            tu.isClean('server').should.eventually.equal(false)
           ])
+        })
+      })
+    })
+  })
 
+  it('should handle an unsynced repo with a dirty working copy', function() {
+    const newReadme = 'New and improved README'
+    return tu.writeRepo('client', 'README.md', newReadme).then(() => {
+      return tu.sync(this.clientDir, this.remote).then(() => {
+        return Promise.all([
+          tu.getCommits('server').should.eventually.have.property('length').equal(2),
+          tu.getCommits('client').should.eventually.have.property('length').equal(2),
+          utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal(newReadme),
+          tu.isClean('server').should.eventually.equal(false)
+        ])
+      })
+    })
+  })
+/*
+  })
+  /*
     it "should handle a series of non-committed edits/syncs", ->
       writeRepo("client", "README.md", "v2")
       .then =>

@@ -4,7 +4,6 @@ const tmpWorkspace = '.test-tmp'
 
 let testUtils = {
   sync: (clientDir, remote) => {
-    console.log("syncing...")
     const syncer = new Syncer({srcDir: clientDir, remote})
     syncer.configureServer()
     return syncer.sync()
@@ -53,7 +52,6 @@ let testUtils = {
   },
 
   commitAll: (repo, msg) => {
-    console.log("committing", repo, msg)
     return utils.cmd(`${tmpWorkspace}/${repo}`, 'git add .').then(() => {
       return utils.cmd(`${tmpWorkspace}/${repo}`, `git commit -m "${msg}"`)
     })
