@@ -1,17 +1,9 @@
 const repl = require('repl')
 const _ = require('underscore')
+const testUtils = require('./test/utils')
 
 _.extend(global, require('./test/utils'))
-
-const createTimeoutPromise = () => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      resolve('yoyoyo')
-    }, 4000)
-  })
-}
-
-_.extend(global, createTimeoutPromise)
+_.extend(global, require('./lib/utils'))
 
 const isPromise = (value) => {
   if (typeof value === 'object') {
@@ -21,17 +13,27 @@ const isPromise = (value) => {
   }
 }
 
-const runLine = (cmd, context, filename, callback) => {
-  const result = eval(cmd)
+//_cmd so we can have a fucntion called cmd in global context
+//pretty straightforward eval, except it waits for promises
+const runLine = (_cmd, context, filename, callback) => {
+  const result = eval(_cmd)
   if (!isPromise(result)) {
-    callback(result)
+    callback(null, result)
   } else {
     result.then((value) => {
-      callback(value)
+      callback(null, value)
     }).catch((failure) => {
       callback(failure)
     })
   }
 }
 
-repl.start({prompt: '> ', eval: runLine})
+const myWriter = function(output) {
+  if (typeof output === 'object'){
+    return JSON.stringify(output)
+  } else {
+    return output
+  }
+}
+
+repl.start({prompt: '> ', eval: runLine, writer: myWriter})

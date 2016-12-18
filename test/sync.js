@@ -2,138 +2,42 @@ const chai = require('chai')
 chai.should()
 const chaiAsPromised = require('chai-as-promised')
 chai.use(chaiAsPromised)
-
 const rimraf = require('rimraf')
 const fs = require('fs')
-const Syncer = require('../lib/sync')
+const tu = require('./utils')
 const utils = require('../lib/utils')
-const nodegit = require('nodegit')
 
+// TODO don't duplicate this constant
 const tmpWorkspace = '.test-tmp'
-
-const sync = (clientDir, remote) => {
-  const syncer = new Syncer({srcDir: clientDir, remote})
-  syncer.configureServer()
-  return syncer.sync()
-}
-
-const createRepo = (repo) => {
-  return utils.cmd(tmpWorkspace, `git init ${repo}`)
-}
-
-const writeRepo = (repo, filepath, contents) => {
-  return utils.writeFile(`./${tmpWorkspace}/${repo}/${filepath}`, contents)
-}
-
-const gitCheckout = (repo, branch, create = false) => {
-  let command = null
-  if (create) {
-    command = `git checkout -b ${branch}`
-  } else {
-    command = `git checkout ${branch}`
-  }
-  return utils.cmd(`${tmpWorkspace}/${repo}`, command)
-}
-
-const gitHead = (repo) => {
-  return utils.readFile(`${tmpWorkspace}/${repo}/.git/HEAD`).then((contents) => {
-    // match = /refs\/heads\/(.*$)/.match(contents)[1]
-    // console.log("MATCH", match)
-    const head = /refs\/heads\/(.*$)/.exec(contents)[1]
-    return Promise.resolve(head)
-  })
-}
-
-const commitAll = (repo, msg) => {
-  utils.cmd(`${tmpWorkspace}/${repo}`, 'git add .').then(() => {
-    return utils.cmd(`${tmpWorkspace}/${repo}`, `git commit -m "${msg}"`)
-  })
-}
-
-const isClean = (repo) => {
-  nodegit.Repository.open(`${tmpWorkspace}/#{repo}`).then((repo) => {
-    repo.getStatus().then((statuses) => {
-      Promise.resolve(statuses.length === 0)
-    })
-  })
-}
-
-const getCommits = (repo) => {
-  const commits = []
-  nodegit.Repository.open(`#{tmpWorkspace}/#{repo}`).then((repo) => {
-    if (repo.isEmpty()) {
-      return Promise.resolve(null)
-    } else {
-      repo.getHeadCommit()
-    }
-  }).then((firstComitOnMaster) => {
-    if (firstComitOnMaster === null) {
-      return Promise.resolve(null)
-    }
-    const history = firstComitOnMaster.history()
-    history.on('commit', (commit) => {
-      commits.push({msg: commit.message()})
-    })
-    history.start()
-    return new Promise((resolve, reject) => {
-      resolve(history)
-    })
-  }).then((history) => {
-    if (history == null) {
-      return []
-    }
-    return new Promise((resolve, reject) => {
-      history.on('end', () => {
-        resolve(commits)
-      })
-    })
-  })
-}
 
 describe('Syncing', function () {
   const readmeContents = 'README'
 
-  const addREADME = (repo, contents = readmeContents) => {
-    return writeRepo(repo, 'README.md', contents)
-  }
-
-  const fillRepo = (repo) => {
-    addREADME(repo)
-    .then(() => {
-      commitAll(repo, 'commit README')
-    }).then(() => {
-      writeRepo(repo, 'index.js', "console.log('Helo World');")
-    }).then(() => {
-      commitAll(repo, 'add index.js')
-    })
-  }
-
-  beforeEach(function () {
+    beforeEach(function () {
     this.clientDir = `${tmpWorkspace}/client`
     this.remote = `${process.env.USER}@localhost:${process.cwd()}/${tmpWorkspace}/server`
-    rimraf.sync(`./#{tmpWorkspace}`)
-    fs.mkdirSync(`./#{tmpWorkspace}`)
-    const p1 = createRepo('client').then((result) => {
-      fillRepo('client')
+    rimraf.sync(`./${tmpWorkspace}`)
+    fs.mkdirSync(`./${tmpWorkspace}`)
+    const p1 = tu.createRepo('client').then((result) => {
+      return tu.fillRepo('client')
     })
-    const p2 = createRepo('server')
+    const p2 = tu.createRepo('server')
     return Promise.all([p1, p2])
   })
 
   describe('Non-bare (empty staging area) to bare', function () {
     it('should sync all files', function () {
-      Promise.all([
-        getCommits('client').should.eventually.have.property('length').equal(2),
-        getCommits('server').should.eventually.have.property('length').equal(0)
-      ]).next((result) => {
-        sync(this.clientDir, this.remote).next(() => {
-          Promise.all([
+      return Promise.all([
+        tu.getCommits('client').should.eventually.have.property('length').equal(2),
+        tu.getCommits('server').should.eventually.have.property('length').equal(0)
+      ]).then((result) => {
+        return tu.sync(this.clientDir, this.remote).then(() => {
+          return Promise.all([
             // TODO add check that user's staging area is kept clean
-            // harder than it seems it should be w/ nodegit..
-            getCommits('server').should.eventually.have.property('length').equal(2),
+            tu.getCommits('server').should.eventually.have.property('length').equal(2),
             utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal(readmeContents),
-            getCommits('client').should.eventually.have.property('length').equal(2),
-            isClean('server').should.eventually.equal(true)
+            tu.getCommits('client').should.eventually.have.property('length').equal(2),
+            tu.isClean('server').should.eventually.equal(true)
           ])
         })
       })
