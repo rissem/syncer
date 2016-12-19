@@ -79,28 +79,29 @@ describe('Syncing', function () {
       })
     })
   })
-/*
-  })
-  /*
-    it "should handle a series of non-committed edits/syncs", ->
-      writeRepo("client", "README.md", "v2")
-      .then =>
-        sync(@clientDir, @remote)
-      .then =>
-         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v2")
-      .then =>
-        writeRepo("client", "README.md", "v3")
-      .then =>
-        sync(@clientDir, @remote)
-      .then =>
-         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v3")
-      .then =>
-        writeRepo("client", "README.md", "v4")
-      .then =>
-        sync(@clientDir, @remote)
-      .then =>
-         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v4")
 
+  it('should handle a series of non-committed edits/syncs', function(){
+    return tu.writeRepo('client', 'README.md', 'v2')
+    .then(()=> {
+      return tu.sync(this.clientDir, this.remote)
+    })
+    .then(() => {
+       return utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal('v2')
+    }).then(() => {
+      return tu.writeRepo('client', 'README.md', 'v3')
+    }).then(() => {
+      return tu.sync(this.clientDir, this.remote)
+    }).then(() => {
+      return utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal('v3')
+    }).then(() => {
+      return tu.writeRepo('client', 'README.md', 'v4')
+    }).then(() => {
+      return tu.sync(this.clientDir, this.remote)
+    }).then(() => {
+      return utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal('v4')
+    })
+  })
+/*
     #TODO better name up here..
     it "should handle a commit on the client after a sync has occurred", ->
       writeRepo("client", "README.md", "v2")
