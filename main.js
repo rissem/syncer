@@ -2,7 +2,7 @@ const electron = require('electron')
 const app = electron.app
 const chokidar = require('chokidar')
 
-const Syncer = require('.lib/sync')
+const Syncer = require('./lib/sync')
 const path = require('path')
 const config = require(path.join(process.env.HOME, '.syncer.js'))
 
@@ -20,11 +20,14 @@ app.on('ready', () => {
     syncer.configureServer().then(() => {
       if (config.options.watch) {
         console.log('watching', repo.local)
-        const ignore = new RegExp(`${repo.local}/.git/refs/__git-n-sync__/head|${repo.local}/.git/index-git-n-sync`)
+        const ignore = [new RegExp(`${repo.local}/.git/refs/__git-n-sync__/head|${repo.local}/.git/index-git-n-sync`),
+                        new RegExp(`${repo.local}/.git/objects`)
+        ]
         const watcher = chokidar.watch(repo.local, {ignored: repo.ignore.concat(ignore)})
 
         watcher.on('all', (event, path) => {
           if (scanComplete) {
+            // console.log('event', event, path)
             display(syncer.sync())
           }
         })
@@ -41,7 +44,6 @@ app.on('ready', () => {
       }
     })
   })
-  console.log('configuring server')
 })
 
 const display = (results) => {
