@@ -20,14 +20,20 @@ app.on('ready', () => {
     syncer.configureServer().then(() => {
       if (config.options.watch) {
         console.log('watching', repo.local)
-        const ignore = [new RegExp(`${repo.local}/.git/refs/__git-n-sync__/head|${repo.local}/.git/index-git-n-sync`),
+        const ignored = [new RegExp(`${repo.local}/.git/refs/__git-n-sync__/head|${repo.local}/.git/index-git-n-sync`),
                         new RegExp(`${repo.local}/.git/objects`)
-        ]
-        const watcher = chokidar.watch(repo.local, {ignored: repo.ignore.concat(ignore)})
+        ].concat(repo.ignore)
+        const watcher = chokidar.watch(repo.local, {ignored})
+
+        // TODO if a huge number of files/directories are detected
+        // warn the user, there is probably something not being ignored that
+        // should be
 
         watcher.on('all', (event, path) => {
           if (scanComplete) {
-            // console.log('event', event, path)
+            if (process.env.DEBUG) {
+              console.log('event', event, path)
+            }
             display(syncer.sync())
           }
         })
