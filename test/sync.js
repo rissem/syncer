@@ -1,3 +1,5 @@
+/* eslint-env node, mocha */
+
 const chai = require('chai')
 chai.should()
 const chaiAsPromised = require('chai-as-promised')
@@ -13,7 +15,7 @@ const tmpWorkspace = '.test-tmp'
 describe('Syncing', function () {
   const readmeContents = 'README'
 
-    beforeEach(function () {
+  beforeEach(function () {
     this.clientDir = `${tmpWorkspace}/client`
     this.remote = `${process.env.USER}@localhost:${process.cwd()}/${tmpWorkspace}/server`
     rimraf.sync(`./${tmpWorkspace}`)
@@ -44,7 +46,7 @@ describe('Syncing', function () {
     })
   })
 
-  it('should sync a save that is not committed', function() {
+  it('should sync a save that is not committed', function () {
     return tu.sync(this.clientDir, this.remote).then(() => {
       return Promise.all([
         tu.getCommits('server').should.eventually.have.property('length').equal(2),
@@ -66,7 +68,7 @@ describe('Syncing', function () {
     })
   })
 
-  it('should handle an unsynced repo with a dirty working copy', function() {
+  it('should handle an unsynced repo with a dirty working copy', function () {
     const newReadme = 'New and improved README'
     return tu.writeRepo('client', 'README.md', newReadme).then(() => {
       return tu.sync(this.clientDir, this.remote).then(() => {
@@ -80,13 +82,13 @@ describe('Syncing', function () {
     })
   })
 
-  it('should handle a series of non-committed edits/syncs', function(){
+  it('should handle a series of non-committed edits/syncs', function () {
     return tu.writeRepo('client', 'README.md', 'v2')
-    .then(()=> {
+    .then(() => {
       return tu.sync(this.clientDir, this.remote)
     })
     .then(() => {
-       return utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal('v2')
+      return utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal('v2')
     }).then(() => {
       return tu.writeRepo('client', 'README.md', 'v3')
     }).then(() => {
@@ -101,29 +103,38 @@ describe('Syncing', function () {
       return utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal('v4')
     })
   })
-/*
-    #TODO better name up here..
-    it "should handle a commit on the client after a sync has occurred", ->
-      writeRepo("client", "README.md", "v2")
-      .then =>
-        sync(@clientDir, @remote)
-      .then =>
-         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v2")
-      .then =>
-        writeRepo("client", "README.md", "v3")
-      .then =>
-        commitAll("client", "A new commit is upon us")
-      .then =>
-        sync(@clientDir, @remote)
-      .then =>
-         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v3")
-      .then =>
-        writeRepo("client", "README.md", "v4")
-      .then =>
-        sync(@clientDir, @remote)
-      .then =>
-         utils.readFile("./#{tmpWorkspace}/server/README.md").should.eventually.equal("v4")
 
+  it.only('should handle a commit on the client after a sync has occurred', function () {
+    tu.writeRepo('client', 'README.md', 'v2')
+    .then(() => {
+      return tu.sync(this.clientDir, this.remote)
+    })
+    .then(() => {
+      return utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal('v2')
+    })
+    .then(() => {
+      return tu.writeRepo('client', 'README.md', 'v3')
+    })
+    .then(() => {
+      return tu.commitAll('client', 'A new commit is upon us')
+    })
+    .then(() => {
+      return tu.sync(this.clientDir, this.remote)
+    })
+    .then(() => {
+      return utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal('v3')
+    })
+    .then(() => {
+      return tu.writeRepo('client', 'README.md', 'v4')
+    }).then(() => {
+      return tu.sync(this.clientDir, this.remote)
+    })
+    .then(() => {
+      return utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal('v4')
+    })
+  })
+
+/*
     it "should handle a non-master branch", ->
       gitCheckout("client", "devel", true).then =>
         sync(@clientDir, @remote).then ->
