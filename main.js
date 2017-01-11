@@ -5,8 +5,10 @@ const chokidar = require('chokidar')
 const Syncer = require('./lib/sync')
 const path = require('path')
 const config = require(path.join(process.env.HOME, '.syncer.js'))
+const tray = require('./lib/tray')
 
 app.on('ready', () => {
+  tray.init()
   config.repos.forEach((repo) => {
     let scanComplete = false
     const syncer = new Syncer({
