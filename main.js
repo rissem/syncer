@@ -6,10 +6,12 @@ const Syncer = require('./lib/sync')
 const path = require('path')
 const config = require(path.join(process.env.HOME, '.syncer.js'))
 const tray = require('./lib/tray')
+const tunnel = require('./lib/tunnel')
 
 app.on('ready', () => {
   tray.init()
   config.repos.forEach((repo) => {
+    tunnel.create(repo)
     let scanComplete = false
     const syncer = new Syncer({
       srcDir: repo.local,

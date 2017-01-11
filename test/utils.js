@@ -17,7 +17,7 @@ let testUtils = {
     return utils.writeFile(`./${tmpWorkspace}/${repo}/${filepath}`, contents)
   },
 
-  addREADME: (repo, contents = "README") => {
+  addREADME: (repo, contents = 'README') => {
     return module.exports.writeRepo(repo, 'README.md', contents)
   },
 
