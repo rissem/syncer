@@ -21,12 +21,18 @@ app.on('ready', () => {
     if (config.options.verbose) {
       console.log('configuring server')
     }
+
+    // TODO extract all this watcher stuff into its own file
     syncer.configureServer().then(() => {
       if (config.options.watch) {
         console.log('watching', repo.local)
         const ignored = [new RegExp(`${repo.local}/.git/refs/__git-n-sync__/head|${repo.local}/.git/index-git-n-sync`),
                         new RegExp(`${repo.local}/.git/objects`)
-        ].concat(repo.ignore)
+        ].concat(repo.ignore.map((pattern) => {
+          if (!pattern.startsWith('/')) {
+            return path.join(repo.local, pattern)
+          }
+        }))
         const watcher = chokidar.watch(repo.local, {ignored})
 
         // TODO if a huge number of files/directories are detected

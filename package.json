@@ -6,7 +6,7 @@
     "test": "electron test.js",
     "start": "electron index.js",
     "console": "electron console.js",
-    "build": "node_modules/.bin/electron-packager . --mac --overwrite --electron-version 1.4.14 --out .builds"
+    "build": "node_modules/.bin/electron-packager . --mac --overwrite --out .builds"
   },
   "repository": {
     "type": "git",
@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "chokidar": "^1.4.2",
-    "electron-prebuilt": "^1.1.2",
+    "electron": "^1.4.14",
     "lie": "^2.8.1",
     "underscore": "^1.8.3"
   }
