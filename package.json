@@ -4,8 +4,9 @@
   "description": "Keeps a local git repo tightly synced w/ a remote",
   "scripts": {
     "test": "electron test.js",
-    "start": "electron main.js",
-    "console": "electron console.js"
+    "start": "electron index.js",
+    "console": "electron console.js",
+    "build": "node_modules/.bin/electron-packager . --mac --overwrite --electron-version 1.4.14 --out .builds"
   },
   "repository": {
     "type": "git",
@@ -26,6 +27,7 @@
     "babel-eslint": "^7.1.0",
     "chai": "^2.3.0",
     "chai-as-promised": "^5.0.0",
+    "electron-packager": "^8.5.0",
     "electron-rebuild": "^1.1.5",
     "eslint": "^3.8.1",
     "eslint-config-standard": "^6.2.1",
