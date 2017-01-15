@@ -27,21 +27,19 @@ describe('Syncing', function () {
     return Promise.all([p1, p2])
   })
 
-  describe('Non-bare (empty staging area) to bare', function () {
-    it('should sync all files', function () {
-      return Promise.all([
-        tu.getCommits('client').should.eventually.have.property('length').equal(2),
-        tu.getCommits('server').should.eventually.have.property('length').equal(0)
-      ]).then((result) => {
-        return tu.sync(this.clientDir, this.remote).then(() => {
-          return Promise.all([
-            // TODO add check that user's staging area is kept clean
-            tu.getCommits('server').should.eventually.have.property('length').equal(2),
-            utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal(readmeContents),
-            tu.getCommits('client').should.eventually.have.property('length').equal(2),
-            tu.isClean('server').should.eventually.equal(true)
-          ])
-        })
+  it('should sync all files', function () {
+    return Promise.all([
+      tu.getCommits('client').should.eventually.have.property('length').equal(2),
+      tu.getCommits('server').should.eventually.have.property('length').equal(0)
+    ]).then((result) => {
+      return tu.sync(this.clientDir, this.remote).then(() => {
+        return Promise.all([
+          // TODO add check that user's staging area is kept clean
+          tu.getCommits('server').should.eventually.have.property('length').equal(2),
+          utils.readFile(`./${tmpWorkspace}/server/README.md`).should.eventually.equal(readmeContents),
+          tu.getCommits('client').should.eventually.have.property('length').equal(2),
+          tu.isClean('server').should.eventually.equal(true)
+        ])
       })
     })
   })
@@ -104,7 +102,7 @@ describe('Syncing', function () {
     })
   })
 
-  it.only('should handle a commit on the client after a sync has occurred', function () {
+  it('should handle a commit on the client after a sync has occurred', function () {
     tu.writeRepo('client', 'README.md', 'v2')
     .then(() => {
       return tu.sync(this.clientDir, this.remote)

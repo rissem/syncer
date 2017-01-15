@@ -59,50 +59,22 @@ let testUtils = {
 
   isClean: (repo) => {
     return utils.cmd(`${tmpWorkspace}/${repo}`, 'git diff --shortstat').then((result) => {
-      return Promise.resolve(result.stdout === "")
+      return Promise.resolve(result.stdout === '')
     })
   },
 
   getCommits: (repo) => {
-    const commits = []
     const cmd = `git log --pretty=format:"%H:%s"`
-    return utils.cmd(`${tmpWorkspace}/${repo}`, cmd).then((result) => {
-      return Promise.resolve(result.stdout.split('\n').map((line) => {
-        const [hash, message] = line.split(':')
-        return {hash, message}
-      }))
-    }, (err) => {
-      //TODO hack, handle more elegantly in future
-      return Promise.resolve([])
+    return utils.cmd(`${tmpWorkspace}/${repo}`, cmd).then(({stdout, err}) => {
+      if (err) {
+        return Promise.resolve([])
+      } else {
+        return Promise.resolve(stdout.split('\n').map((line) => {
+          const [hash, message] = line.split(':')
+          return {hash, message}
+        }))
+      }
     })
-    // nodegit.Repository.open(`#{tmpWorkspace}/#{repo}`).then((repo) => {
-    //   if (repo.isEmpty()) {
-    //     return Promise.resolve(null)
-    //   } else {
-    //     repo.getHeadCommit()
-    //   }
-    // }).then((firstComitOnMaster) => {
-    //   if (firstComitOnMaster === null) {
-    //     return Promise.resolve(null)
-    //   }
-    //   const history = firstComitOnMaster.history()
-    //   history.on('commit', (commit) => {
-    //     commits.push({msg: commit.message()})
-    //   })
-    //   history.start()
-    //   return new Promise((resolve, reject) => {
-    //     resolve(history)
-    //   })
-    // }).then((history) => {
-    //   if (history == null) {
-    //     return []
-    //   }
-    //   return new Promise((resolve, reject) => {
-    //     history.on('end', () => {
-    //       resolve(commits)
-    //     })
-    //   })
-    // })
   }
 }
 
