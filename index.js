@@ -26,15 +26,15 @@ app.on('ready', () => {
     syncer.configureServer().then(() => {
       if (config.options.watch) {
         console.log('watching', repo.local)
-        const ignored = [new RegExp(`${repo.local}/.git/refs/__git-n-sync__/head|${repo.local}/.git/index-git-n-sync`),
+        let ignored = [new RegExp(`${repo.local}/.git/refs/__git-n-sync__/head|${repo.local}/.git/index-git-n-sync`),
                         new RegExp(`${repo.local}/.git/objects`)
-        ].concat(repo.ignore.map((pattern) => {
-          if (!pattern.startsWith('/')) {
-            return path.join(repo.local, pattern)
-          }
-        }))
+        ]
+        if (repo.ignore) {
+          ignored = ignored.concat(repo.ignore.map(pattern =>
+            !pattern.startsWith('/') ? path.join(repo.local, pattern) : pattern
+          ))
+        }
         const watcher = chokidar.watch(repo.local, {ignored})
-
         // TODO if a huge number of files/directories are detected
         // warn the user, there is probably something not being ignored that
         // should be
@@ -58,6 +58,8 @@ app.on('ready', () => {
       } else {
         display(syncer.sync())
       }
+    }).catch((e) => {
+      console.trace('Error configuring server', e)
     })
   })
 })
@@ -75,5 +77,7 @@ const display = (results) => {
       console.log('No changes were synced')
       console.log(`Sync completed in ${duration / 1000} seconds`)
     }
+  }).catch((e) => {
+    console.trace('error syncing', e)
   })
 }
