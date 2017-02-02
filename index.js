@@ -65,18 +65,19 @@ app.on('ready', () => {
 })
 
 const display = (results) => {
-  results.then((result) => {
+  return results.then((result) => {
     if (!result) {
       return
     }
     const {updates, duration} = result
-    updates.forEach((update) => {
-      console.log `${update.action} ${update.filename} for update in updates`
-    })
     if (updates.length === 0) {
       console.log('No changes were synced')
-      console.log(`Sync completed in ${duration / 1000} seconds`)
+    } else {
+      updates.map((update) => {
+        console.log(`${update.action} ${update.filename}`)
+      })
     }
+    console.log(`Sync completed in ${duration / 1000} seconds`)
   }).catch((e) => {
     console.trace('error syncing', e)
   })
